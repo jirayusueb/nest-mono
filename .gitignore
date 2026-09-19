@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.output/
+.env
+.alchemy/
+*.tsbuildinfo
+.DS_Store
+.vite-hooks/_/
