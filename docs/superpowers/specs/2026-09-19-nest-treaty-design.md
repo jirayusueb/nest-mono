@@ -1,7 +1,7 @@
 # @nest-mono/treaty — Eden-style typesafety for vanilla NestJS
 
-Date: 2026-09-19
-Status: approved design (brainstorming output)
+Date: 2026-09-19 (revised: generated route table replaces hand-written manifest)
+Status: revised design, awaiting user review
 
 ## Problem
 
@@ -11,157 +11,172 @@ duplicates `PostResponse` as `Post`, `CreatePostBody` as `PostDraft`,
 re-states its generic (`apiFetch<{ posts: Post[] }>`). Server DTO changes drift
 silently until runtime. We want the Elysia Eden property — frontend types flow
 from the server source with zero codegen — against **pure vanilla NestJS
-controllers**, which stay exactly as they are.
+controllers**, untouched.
 
 ## Why not the existing options
 
 - **ts-rest** (contract-first): moves shapes into a separate contract DSL;
   controllers stop being vanilla. Re-declares what we're trying to infer.
 - **OpenAPI codegen** (`@nestjs/swagger` → `openapi-typescript` →
-  `openapi-fetch`): build step, types from annotations rather than inference,
-  emit/serve drift. The opposite of Eden's property.
+  `openapi-fetch`): type codegen from annotations, emit/serve drift.
+- **Hand-written route manifest** (previous revision): worked, but every route
+  is declared a second time by a human. User decision: the route table must be
+  **generated from AppModule**.
 
-## The constraint that shapes the design
+## The two constraints that shape the design
 
-TypeScript can infer **shapes** from vanilla controller signatures (param
-types via `Parameters<M>`, response via `Awaited<ReturnType<M>>`), but cannot
-see **decorator arguments**: `@Get(":slug")` paths, verbs, and param bindings
-live only in runtime reflect-metadata. So paths/verbs/bindings are the single
-fact that must be declared twice — and that copy is machine-checked against
-Nest's own metadata by a test. Shapes are never duplicated.
+1. TypeScript can infer **shapes** from vanilla controller signatures
+   (`Parameters<M>`, `Awaited<ReturnType<M>>`), but cannot see **decorator
+   arguments**: paths, verbs, and param bindings live only in runtime
+   reflect-metadata. Answer: generate the routing _data_ from that metadata —
+   types are never generated, only data.
+2. The web cannot import controller modules (they drag usecases/DB/Fastify
+   into the browser bundle). Answer: the generator emits a **pure-data file
+   with type-only imports**, exported through a subpath. Types ride along
+   erased; zero runtime cost.
 
-A second constraint: the web cannot import controller modules (they drag
-usecases/DB/Fastify into the browser bundle). So everything the web consumes
-must be pure data plus type-only imports, exported through a subpath.
+So: one small checked-in generated file holds routing data; all types are
+inferred from the controllers themselves. No hand-written route declarations,
+no controller changes.
 
 ## Package surface — `packages/treaty` (`@nest-mono/treaty`)
 
-Zero runtime dependencies.
+Zero runtime dependencies. No authoring API — the generator produces the data.
 
-- Authoring (server): `manifest()`, `route(verb, path, binding)`,
-  types `Controllers`, `Treaty<M>`, `TreatyInjected`.
 - Client (web): `treaty(origin, routes)`, `ApiError` (same shape as today's
   `client.ts`: `status`, `code`, `message`).
-- Type helper: `TreatyResponse<M, controller, method>` for bare response
-  annotations (queryOptions, props).
+- Types: `TreatyRoutes` (the data shape the generator emits), `Treaty<R, C>`
+  (client type from data + controller map), `TreatyResponse<R, C, controller,
+method>` for bare response annotations (queryOptions, props).
 
-`binding` is an ordered arg-kind tuple `("param" | "query" | "body")[]`
-describing the controller method's transport arguments (after injected ones
-are stripped).
+## Generator — `packages/api/scripts/gen-treaty.ts`
 
-## Server artifact — `packages/api/src/bootstrap/app-routes.ts`
+Run with bun: `bun scripts/gen-treaty.ts` (package script `gen:treaty`).
+Verified generator-friendly: every module in the graph is a static `@Module`
+class (no DynamicModules) and module scope has no env reads or client
+construction.
 
-Pure data + `import type` controller imports only:
+1. Import `AppModule`; recursively walk `Reflect.getMetadata("imports", M)`
+   collecting `Reflect.getMetadata("controllers", M)` from every module.
+   Dynamic modules (if ever introduced) fail loudly.
+2. Exclusions: `HealthController` (`/health` is server-ops) via an explicit
+   list in the script.
+3. Client keys: class name minus `Controller` suffix, camel-cased
+   (`BlogController` → `blog`). Collision → error.
+4. Per controller, scan prototype methods carrying method route metadata:
+   - verb from method metadata; path = controller path + method path joined.
+   - route-args metadata (same source the StandardSchemaValidationPipe reads)
+     yields `{ index, kind, name }` per declared param. Transport kinds
+     (`param`/`query`/`body`) become client args with their source positions;
+     `@Req`/`@Res`/custom decorators (`CurrentUser`) are excluded.
+5. Emit `packages/api/src/bootstrap/app-routes.gen.ts` (checked in):
 
 ```ts
-import type { AuthController } from "../features/auth/presentation/http/auth.controller";
+// Generated by scripts/gen-treaty.ts — do not edit.
 import type { BlogController } from "../features/blog/presentation/http/blog.controller";
-import type { MediaController } from "../features/media/presentation/http/media.controller";
-import type { UserController } from "../features/user/presentation/http/user.controller";
+// ... type-only imports, one per controller
 
-export const appRoutes = manifest<Controllers>({
+export const appRoutes = {
   blog: {
-    list: route("GET", "/api/posts", []),
-    categories: route("GET", "/api/posts/categories", []),
-    getBySlug: route("GET", "/api/posts/:slug", ["param"]),
-    create: route("POST", "/api/posts", ["body"]),
-    update: route("PATCH", "/api/posts/:id", ["param", "body"]),
-    remove: route("DELETE", "/api/posts/:id", ["param"]),
+    list: { verb: "GET", path: "/api/posts", args: [] },
+    getBySlug: {
+      verb: "GET",
+      path: "/api/posts/:slug",
+      args: [{ pos: 0, kind: "param", name: "slug" }],
+    },
+    create: {
+      verb: "POST",
+      path: "/api/posts",
+      args: [{ pos: 0, kind: "body" }],
+    },
+    update: {
+      verb: "PATCH",
+      path: "/api/posts/:id",
+      args: [
+        { pos: 0, kind: "param", name: "id" },
+        { pos: 1, kind: "body" },
+      ],
+    },
+    remove: {
+      verb: "DELETE",
+      path: "/api/posts/:id",
+      args: [{ pos: 0, kind: "param", name: "id" }],
+    },
+    categories: { verb: "GET", path: "/api/posts/categories", args: [] },
   },
-  auth: {
-    signUpEmail: route("POST", "/api/auth/sign-up/email", ["body"]),
-    signInEmail: route("POST", "/api/auth/sign-in/email", ["body"]),
-    signOutRoute: route("POST", "/api/auth/sign-out", []),
-    getSessionRoute: route("GET", "/api/auth/get-session", []),
-  },
-  user: { me: route("GET", "/api/user/me", []) },
-  media: {
-    createTarget: route("POST", "/api/media/target", ["body"]),
-    confirm: route("POST", "/api/media/confirm", ["body"]),
-    list: route("GET", "/api/media", []),
-    remove: route("DELETE", "/api/media/:key", ["param"]),
-  },
-});
+  auth: {/* signUpEmail, signInEmail, signOutRoute, getSessionRoute */},
+  user: { me: { verb: "GET", path: "/api/user/me", args: [] } },
+  media: {/* createTarget, confirm, list, remove */},
+} satisfies TreatyRoutes;
 
-export type AppTreaty = Treaty<typeof appRoutes>;
-```
-
-Re-exported via a **new subpath export** `"@nest-mono/api/treaty"` (root `.`
-export pulls `createApp`/DB; subpath keeps the web bundle clean).
-
-Scope note: `HealthController` (`/health`) is server-ops only; deliberately
-not in the manifest.
-
-## Type mechanics
-
-```ts
-type Controllers = {
+export type Controllers = {
   blog: typeof BlogController;
   auth: typeof AuthController;
   media: typeof MediaController;
   user: typeof UserController;
 };
 
-type ManifestShape<C extends Controllers> = {
-  [K in keyof C]: { [M in MethodNames<InstanceType<C[K]>>]: RouteDecl };
-};
+export type AppTreaty = Treaty<typeof appRoutes, Controllers>;
 ```
 
-- `manifest<C extends Controllers>(def: ManifestShape<C>)` — `C` is given
-  explicitly (`manifest<Controllers>`) because controllers can only be
-  type-only imports here; the literal is then checked so a missing or unknown
-  method name is a compile error — the manifest is forced to cover every
-  public method of every controller.
-- `MethodNames` = declared public methods of the instance type (`keyof`
-  already excludes `constructor` and `Object.prototype` members). Convention:
-  controllers stay route-only; all 4 do today. A public helper method would be
-  forced into the manifest and fail loudly — acceptable and visible.
-- Client method type:
-  `(...args: StripInjected<Parameters<M>>) => Promise<Awaited<ReturnType<M>>>`.
-  Response is the controller's own return type; inputs are its own param
-  types. Positional labels preserved where TS allows.
-- `StripInjected` recursively filters tuple elements extending
-  `TreatyInjected` (empty marker interface).
-- `RouteDecl` carries the binding tuple as a `const`-generic, and
-  `ManifestShape` length-checks it against
-  `StripInjected<Parameters<M>>["length"]` — a binding that doesn't match the
-  method's transport arity fails at compile time (the drift test re-checks it
-  against decorator metadata at runtime).
+`@Req`/`@Res`/`@CurrentUser` positions never enter `args`, so the type-level
+positional mapping below strips them automatically — **controllers are not
+modified at all** (no marker interfaces, no annotation swaps).
 
-### Marking injected params (annotations only, decorators untouched)
+Re-exported via a **new subpath export** `"@nest-mono/api/treaty"` (root `.`
+export pulls `createApp`/DB; subpath keeps the web bundle clean).
 
-In `packages/api/src/shared/presentation/http/`:
+### Wiring
 
-- `type ServerReq = FastifyRequest & TreatyInjected`
-- `type ServerReply = FastifyReply & TreatyInjected`
-- `type CurrentIdentity = SessionUser & TreatyInjected`
+- `packages/api` package script `"gen:treaty": "bun scripts/gen-treaty.ts"`.
+- Root `dev`/`build`/`check-types` chains run `gen:treaty` before type
+  checking (route edits take effect after a regen; documented dev flow).
 
-Controllers annotate injected params with these aliases: auth (`@Req`, `@Res`,
-×several), blog (`@CurrentUser` ×3), user (×1), media (×2). Four controller
-files plus the shared aliases module, zero behavior change.
+## Type mechanics
+
+- `Treaty<R, C>` maps each controller key to an object of methods:
+
+  ```ts
+  method: (...args: ClientArgs<Parameters<Inst[K]>, args>) =>
+    Promise<Awaited<ReturnType<Inst[K]>>>;
+  ```
+
+  `ClientArgs` is a mapped tuple over the route's `args` array, indexing
+  `Parameters<M>` by each entry's `pos` — exact declared types in declaration
+  order, with `@Req`/`@Res`/`@CurrentUser` positions skipped because the
+  generator never emits them. Response is the controller's own return type.
+
+- Completeness stays compile-enforced: `Treaty<R, C>` — the only type that
+  sees both the data and the controller map — requires the data keys to be
+  exactly the public methods of every controller in `C`, so a stale or
+  hand-mangled generated file fails `check-types` (missing/extra method =
+  error). Public non-route helper methods on controllers would surface here
+  too; convention (already true of all 4 controllers): controllers are
+  route-only.
+- Positions are compile-checked: each `pos` must index `Parameters<M>`; a
+  stale position (param removed or reordered without regenerating) yields a
+  type error or a visible `never` at the call site.
 
 ## Runtime client
 
-`treaty(origin, appRoutes)` builds plain nested functions from manifest data:
+`treaty(origin, appRoutes)` builds plain nested functions from route data:
 
-1. Substitute `:name` URL segments from args at `param` positions (in order),
-   `encodeURIComponent` each.
-2. Append `query`-position args as search params (none exist today; cheap).
-3. `body`-position arg → `JSON.stringify` + `Content-Type: application/json`.
+1. Substitute `:name` URL segments from args at `param` positions using each
+   arg's recorded `name`, `encodeURIComponent` each.
+2. `query` args append as search params (`name`-less → object spread).
+3. `body` args → `JSON.stringify` + `Content-Type: application/json`.
 4. `credentials: "include"`.
 5. `!res.ok` → parse problem+json → `throw new ApiError(status, code,
 message)`; unknown bodies default `code: "Unknown"`,
    `message: res.statusText` — byte-for-byte today's `client.ts` semantics.
 6. `204`/`205` → `undefined`; otherwise `res.json()`.
 
-## Drift guard — `packages/api/src/bootstrap/app-routes.test.ts`
+## Freshness guard — `packages/api/src/bootstrap/app-routes.gen.test.ts`
 
-Boots no server. Scans `AppModule`'s controllers with `@nestjs/core`
-`MetadataScanner` + reflect-metadata constants (`PATH_METADATA`,
-`METHOD_METADATA`, route-args metadata) into the real route table
-`{ path, verb, controller method name, arg kinds }`, and deep-equals it
-against the manifest. A path typo, missing route, changed verb, or reordered
-params turns the test red. The one duplicated fact cannot drift silently.
+The generator is the single source of the route data, so drift means _stale
+generated file_: the test reruns the generator to a temp file and asserts the
+checked-in `app-routes.gen.ts` is byte-identical. CI catches a forgotten
+regen after controller route changes.
 
 ## Web cutover (clean; no shims)
 
@@ -175,25 +190,33 @@ post-mutations,upload-image}.ts`, auth-page, blog-page, admin pages.
 - `PostDraft`/`PostPatch`/`Post`/`User` interfaces deleted; bare response
   types via `TreatyResponse<AppTreaty, "blog", "getBySlug">` where needed.
 - `apps/web/package.json`: add `"@nest-mono/api": "workspace:*"`.
-- `packages/api/package.json`: add `"./treaty": "./src/bootstrap/app-routes.ts"`
+- `packages/api/package.json`: add `"./treaty": "./src/bootstrap/app-routes.gen.ts"`
   to exports.
 
 ## Testing
 
-- `packages/treaty`: unit tests with stubbed `fetch` — URL templating,
-  param/query/body binding order, error mapping, 204 → `undefined`. The
-  package is the durable artifact; it earns tests.
-- `packages/api`: drift-guard test above; one smoke test boots `createApp` on
-  an ephemeral port and round-trips `getBySlug` through the real treaty
-  client (needs DB — run under the repo's existing test env).
+- `packages/api` generator: unit test on a fixture module (controllers with
+  every param kind) asserting the emitted table; the freshness test above.
+- `packages/treaty`: unit tests with stubbed `fetch` — URL templating, param/
+  query/body binding, error mapping, 204 → `undefined`. The package is the
+  durable artifact; it earns tests.
+- `packages/api`: one smoke test boots `createApp` on an ephemeral port and
+  round-trips `getBySlug` through the real treaty client (needs DB — run
+  under the repo's existing test env).
 - `apps/web`: `check-types` green is the end-to-end inference proof; existing
   `bun test apps packages` stays green.
 
 ## Limitations (documented)
 
+- Client arg tuples lose parameter labels (`[string]`, not `[slug: string]`)
+  — the cost of positional mapping without touching controllers.
+- Route edits require a `gen:treaty` rerun; the freshness test catches
+  forgetting.
+- The generator executes the server module graph at import time (safe today:
+  static modules, no import-time env reads). If that ever changes, gen runs
+  with `--env-file` like `db:generate` does.
 - Overloaded controller methods: last overload wins (none exist today).
-- `binding` must mirror decorator order; the drift test catches mismatch.
-- v1 ignores `@Headers`/`@Ip`/custom transport decorators (none used).
+- v1 ignores `@Headers`/`@Ip` transport kinds (none used).
 - Client input types are the controllers' declared param types — e.g.
   `CreatePostBody` is `z.infer` (post-default output), so `content` is
   required client-side. Mirrors server truth; unchanged behavior.
