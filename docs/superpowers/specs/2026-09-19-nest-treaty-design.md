@@ -184,6 +184,203 @@ post-mutations,upload-image}.ts`, auth-page, blog-page, admin pages.
 - `packages/api/package.json`: add `"./treaty": "./src/bootstrap/treaty.ts"`
   to exports.
 
+## Reference implementation (examples; the plan productionizes these)
+
+### `packages/treaty/src/types.ts`
+
+```ts
+/** Marker for params the server injects; stripped from client signatures. */
+export interface TreatyInjected {}
+
+type AnyFn = (...args: never[]) => unknown;
+
+type MethodNames<I> = {
+  [K in keyof I]-?: I[K] extends AnyFn ? K : never;
+}[keyof I];
+
+type StripInjected<T extends unknown[]> = T extends [infer H, ...infer R]
+  ? H extends TreatyInjected
+    ? StripInjected<R>
+    : [H, ...StripInjected<R>]
+  : [];
+
+type ControllerApi<I> = {
+  [M in MethodNames<I> & string]: (
+    ...args: StripInjected<Parameters<I[M]>>
+  ) => Promise<Awaited<ReturnType<I[M]>>>;
+};
+
+export type Treaty<
+  C extends Record<string, new (...args: never[]) => unknown>,
+> = {
+  [K in keyof C]: ControllerApi<InstanceType<C[K]>>;
+};
+
+export type TreatyResponse<
+  A,
+  C extends keyof A & string,
+  M extends keyof A[C] & string,
+> = A[C][M] extends (...args: never[]) => infer R ? Awaited<R> : never;
+```
+
+### `packages/treaty/src/client.ts`
+
+```ts
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+type RouteArg = {
+  pos: number;
+  kind: "param" | "query" | "body";
+  name?: string;
+};
+type Route = { verb: string; path: string; args: RouteArg[] };
+type RouteTable = Record<string, Record<string, Route>>;
+
+export function treaty<Api>(origin: string): Api {
+  let table: Promise<RouteTable> | undefined;
+  const load = () =>
+    (table ??= fetch(`${origin}/treaty/routes`, {
+      credentials: "include",
+    }).then(async (res) => {
+      if (!res.ok)
+        throw new ApiError(res.status, "Unknown", "route table unavailable");
+      return res.json() as Promise<RouteTable>;
+    }));
+
+  const call = async (ctrl: string, method: string, callArgs: unknown[]) => {
+    const route = (await load())[ctrl]?.[method];
+    if (!route)
+      throw new ApiError(0, "Unknown", `unknown route ${ctrl}.${method}`);
+    let path = route.path;
+    const query = new URLSearchParams();
+    let body: unknown;
+    route.args.forEach((spec, i) => {
+      const value = callArgs[i]; // caller args align to args[] by ascending pos
+      if (spec.kind === "param")
+        path = path.replace(`:${spec.name}`, encodeURIComponent(String(value)));
+      else if (spec.kind === "query" && spec.name)
+        query.set(spec.name, String(value));
+      else if (spec.kind === "query")
+        for (const [k, v] of Object.entries(value as object))
+          query.set(k, String(v));
+      else body = value;
+    });
+    const qs = query.size ? `?${query}` : "";
+    const res = await fetch(`${origin}${path}${qs}`, {
+      method: route.verb,
+      credentials: "include",
+      ...(body !== undefined && {
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      }),
+    });
+    if (!res.ok) {
+      const problem = (await res.json().catch(() => ({}))) as {
+        code?: string;
+        message?: string;
+      };
+      throw new ApiError(
+        res.status,
+        problem.code ?? "Unknown",
+        problem.message ?? res.statusText,
+      );
+    }
+    return res.status === 204 || res.status === 205 ? undefined : res.json();
+  };
+
+  return new Proxy({} as Api, {
+    get: (_, ctrl: string) =>
+      new Proxy(
+        {},
+        {
+          get:
+            (_, method: string) =>
+            (...args: unknown[]) =>
+              call(ctrl, method, args),
+        },
+      ),
+  });
+}
+```
+
+### `packages/api/src/shared/presentation/http/treaty-injected.ts`
+
+```ts
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { TreatyInjected } from "@nest-mono/treaty";
+import type { SessionUser } from "../../kernel/types/session-user";
+
+export type ServerReq = FastifyRequest & TreatyInjected;
+export type ServerReply = FastifyReply & TreatyInjected;
+export type CurrentIdentity = SessionUser & TreatyInjected;
+```
+
+Controller change (annotation only — blog `update`):
+
+```ts
+async update(
+  @Param("id", { schema: idSchema }) id: string,
+  @Body({ schema: updatePostSchema }) body: UpdatePostBody,
+  @CurrentUser() identity: CurrentIdentity,   // was SessionUser
+): Promise<PostResponse>
+```
+
+### `packages/api/src/bootstrap/treaty-routes.controller.ts`
+
+```ts
+@Controller("treaty")
+export class TreatyRoutesController {
+  /** Served from live AppModule metadata; never stale by construction. */
+  @Get("routes")
+  table(): RouteTable {
+    return scanRoutes(AppModule, {
+      exclude: [HealthController, TreatyRoutesController],
+    });
+  }
+}
+```
+
+`scanRoutes` walks `Reflect.getMetadata("imports", M)` / `("controllers", M)`
+recursively, derives keys from class names, and reads each method's route
+and route-args metadata (the same source the StandardSchemaValidationPipe
+consumes), emitting transport args only. Exact metadata constants are
+pinned from `@nestjs/common` during implementation.
+
+### Web — `apps/web/src/shared/api/api.ts` + one query rewrite
+
+```ts
+import type { AppTreaty } from "@nest-mono/api/treaty";
+import { treaty } from "@nest-mono/treaty";
+import { API_ORIGIN } from "../config";
+
+export const api = treaty<AppTreaty>(API_ORIGIN);
+export { ApiError } from "@nest-mono/treaty";
+```
+
+```ts
+// features/manage-posts/api/post-queries.ts — no hand-written generics left
+export const POST_QUERIES = {
+  list: () =>
+    queryOptions({
+      queryKey: ["posts"] as const,
+      queryFn: () => api.blog.list(), // Promise<{ posts: PostResponse[] }>
+    }),
+  detail: (slug: string) =>
+    queryOptions({
+      queryKey: ["posts", "detail", slug] as const,
+      queryFn: () => api.blog.getBySlug(slug),
+    }),
+};
+```
+
 ## Testing
 
 - `packages/treaty`: unit tests with stubbed `fetch` — table fetch/caching,
