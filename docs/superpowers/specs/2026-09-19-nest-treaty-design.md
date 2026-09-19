@@ -24,15 +24,22 @@ origin, call methods.
   a regen step; user decision — usage must be exactly like Eden, no build
   step.
 
-## Design in one paragraph
+The server creates one contract value — `createContract({ blog:
+BlogController, ... })` with controllers as **values** — which scans their
+decorator metadata at runtime into a route table AND fixes the type for the
+Eden-style export: `export type AppContract = ContractOf<typeof
+appContract>`. `createContract` also generates the `GET /treaty/routes`
+controller that serves the live table; the client `treaty<AppContract>(
+API_ORIGIN)` lazily fetches it on first call. Every method call is a typed
+function whose args and response are inferred from the controller method
+signatures. No manifest, no codegen, no rerun, no runtime data crossing at
+build time.
 
-The server exports a **type-only anchor** (`AppTreaty`, the Eden equivalent
-of `type App = typeof app`) and serves a tiny **live route-table endpoint**
-(`GET /treaty/routes`) derived from AppModule's own reflect-metadata at
-request time. The client is `treaty<AppTreaty>(API_ORIGIN)` — lazily fetches
-the table on first call, then every method call is a typed function whose
-args and response are inferred from the controller method signatures. No
-manifest, no codegen, no rerun, no runtime data crossing at build time.
+Why not literally `createContract(AppModule)`: decorators add no members, so
+`typeof AppModule` is an empty class type with nothing to infer from. The
+controller map gives the library both the runtime scan source and the type
+source in one declaration — and the export is still a pure `typeof`, exactly
+like Eden's `type App = typeof app`.
 
 ## Package surface — `packages/treaty` (`@nest-mono/treaty`)
 
@@ -43,17 +50,17 @@ Zero runtime dependencies.
   concurrent first calls share one promise.
 - `ApiError` (same shape as today's `client.ts`: `status`, `code`,
   `message`).
-- Types: `Treaty<C>` (client type from a controller map), `TreatyInjected`
-  (marker interface), `TreatyResponse<App, controller, method>` for bare
-  response annotations (queryOptions, props).
+- Server: `createContract(map)` → `{ table, controller }` (scans controller
+  metadata; `controller` serves `GET /treaty/routes`); type `ContractOf<T>`
+  for the `typeof appContract` export.
 
 Usage (web):
 
 ```ts
-import type { AppTreaty } from "@nest-mono/api/treaty";
+import type { AppContract } from "@nest-mono/api/treaty";
 import { treaty } from "@nest-mono/treaty";
 
-export const api = treaty<AppTreaty>(API_ORIGIN);
+export const api = treaty<AppContract>(API_ORIGIN);
 
 const post = await api.blog.getBySlug("hello"); // Promise<PostResponse>
 await api.blog.update(id, patch); // [id: string, body: UpdatePostBody]
@@ -62,50 +69,47 @@ const session = await api.auth.getSessionRoute(); // Promise<GetSessionResponse 
 
 ## Server artifact — `packages/api`
 
-### 1. Type anchor — `src/bootstrap/treaty.ts` (type-only, ~10 lines)
+### 1. Contract anchor — `src/bootstrap/contract.ts`
 
 ```ts
-import type { BlogController } from "../features/blog/presentation/http/blog.controller";
-// ... type-only imports, one per controller
+import { createContract } from "@nest-mono/treaty";
+import { AuthController } from "../features/auth/presentation/http/auth.controller";
+import { BlogController } from "../features/blog/presentation/http/blog.controller";
+import { MediaController } from "../features/media/presentation/http/media.controller";
+import { UserController } from "../features/user/presentation/http/user.controller";
 
-export type AppTreaty = Treaty<{
-  blog: typeof BlogController;
-  auth: typeof AuthController;
-  user: typeof UserController;
-  media: typeof MediaController;
-}>;
+export const appContract = createContract({
+  blog: BlogController,
+  auth: AuthController,
+  user: UserController,
+  media: MediaController,
+});
+
+export type AppContract = ContractOf<typeof appContract>;
 ```
+
+`createContract` scans each controller class's own route/param metadata
+(controllers carry it all — no module walk needed), builds the table, and
+returns a generated Nest controller (`appContract.controller`) serving
+`GET /treaty/routes`. Keys are the map's keys — explicit, no name-derived
+surprises. Collision or a mapped class without route metadata → throws at
+import time, loud.
 
 Exported through a **new subpath** `"@nest-mono/api/treaty"` (root `.` export
-pulls `createApp`/DB; the anchor imports nothing at runtime). This file is
-the Nest analog of Eden's `type App = typeof app` — updated only when a
-controller is added or removed (never when routes/shapes change), and a test
-guards it (below).
+pulls `createApp`/DB). The web imports it `import type` — fully erased.
 
-### 2. Route-table endpoint — `TreatyRoutesController` in AppModule
+### 2. Registration — `TreatyModule` in `src/bootstrap/`
 
-`GET /treaty/routes` → JSON table built **at request time** by scanning
-AppModule's reflect-metadata (module-graph walk over `imports`, collecting
-`controllers`, then per controller: verb + joined path from route metadata,
-and per declared param its `{ index, kind, name }` from route-args metadata —
-the same metadata the StandardSchemaValidationPipe reads). Only transport
-kinds (`param`/`query`/`body`) are emitted:
-
-```jsonc
-{ "blog": { "getBySlug": { "verb": "GET", "path": "/api/posts/:slug",
-             "args": [{ "pos": 0, "kind": "param", "name": "slug" }] },
-             "update": { "verb": "PATCH", "path": "/api/posts/:id",
-             "args": [{ "pos": 0, "kind": "param", "name": "id" }, { "pos": 1, "kind": "body" }] }, ... },
-  "auth": {...}, "user": {...}, "media": {...} }
+```ts
+@Module({ controllers: [appContract.controller] })
+export class TreatyModule {}
 ```
 
-- Excludes `HealthController` and itself (explicit list).
-- Client keys: class name minus `Controller`, camel-cased; collision → the
-  endpoint build throws (server-side, loud).
-- Always in sync by construction — it reads live metadata; no freshness
-  concept exists.
-- Exposes topology only (verbs, paths, arg positions) — no schemas, no
-  secrets; route paths are public knowledge in this app.
+Imported by `AppModule`. `/treaty/routes` serves the table built at import
+time from the same metadata Nest serves routes with — always in sync by
+construction. `HealthController` is simply not in the map. Exposes topology
+only (verbs, paths, arg positions) — no schemas, no secrets; route paths are
+public knowledge in this app.
 
 ### 3. Injected-param markers (annotation-only; decorators untouched)
 
@@ -161,11 +165,11 @@ res.statusText` — byte-for-byte today's `client.ts` semantics.
 Table-fetch failure (server down, non-200, malformed JSON) rejects the call
 with the same `ApiError` machinery.
 
-## Guards — `packages/api/src/bootstrap/treaty.test.ts`
+## Guards — `packages/api/src/bootstrap/contract.test.ts`
 
-1. Scan AppModule controllers; assert the key set equals the anchor's
-   controller map (adding a controller without updating `treaty.ts` → red
-   test).
+1. Scan AppModule's controllers (minus `HealthController` and the treaty
+   controller); assert the key set equals `appContract`'s map (adding a
+   controller to a module without mapping it in `contract.ts` → red test).
 2. Smoke: boot `createApp` on an ephemeral port, `GET /treaty/routes`,
    round-trip `api.blog.getBySlug` through the real treaty client (needs DB —
    runs under the repo's existing test env).
@@ -173,15 +177,15 @@ with the same `ApiError` machinery.
 ## Web cutover (clean; no shims)
 
 - Delete `apps/web/src/shared/api/{client,post,user}.ts`.
-- New `apps/web/src/shared/api/api.ts`: `treaty<AppTreaty>(API_ORIGIN)` +
+- New `apps/web/src/shared/api/api.ts`: `treaty<AppContract>(API_ORIGIN)` +
   `ApiError` re-export; `index.ts` re-exports updated.
 - Rewrite callers to `api.blog.*` / `api.auth.*` / `api.media.*` /
   `api.user.me()`: `features/manage-posts/api/{post-api,post-queries,
 post-mutations,upload-image}.ts`, auth-page, blog-page, admin pages.
 - `PostDraft`/`PostPatch`/`Post`/`User` interfaces deleted; bare response
-  types via `TreatyResponse<AppTreaty, "blog", "getBySlug">` where needed.
+  types via `TreatyResponse<AppContract, "blog", "getBySlug">` where needed.
 - `apps/web/package.json`: add `"@nest-mono/api": "workspace:*"`.
-- `packages/api/package.json`: add `"./treaty": "./src/bootstrap/treaty.ts"`
+- `packages/api/package.json`: add `"./treaty": "./src/bootstrap/contract.ts"`
   to exports.
 
 ## Reference implementation (examples; the plan productionizes these)
@@ -210,9 +214,9 @@ type ControllerApi<I> = {
   ) => Promise<Awaited<ReturnType<I[M]>>>;
 };
 
-export type Treaty<
-  C extends Record<string, new (...args: never[]) => unknown>,
-> = {
+export type ContractMap = Record<string, new (...args: never[]) => unknown>;
+
+export type Treaty<C extends ContractMap> = {
   [K in keyof C]: ControllerApi<InstanceType<C[K]>>;
 };
 
@@ -221,6 +225,9 @@ export type TreatyResponse<
   C extends keyof A & string,
   M extends keyof A[C] & string,
 > = A[C][M] extends (...args: never[]) => infer R ? Awaited<R> : never;
+
+/** Eden-style: `export type AppContract = ContractOf<typeof appContract>`. */
+export type ContractOf<T extends { map: ContractMap }> = Treaty<T["map"]>;
 ```
 
 ### `packages/treaty/src/client.ts`
@@ -333,35 +340,53 @@ async update(
 ): Promise<PostResponse>
 ```
 
-### `packages/api/src/bootstrap/treaty-routes.controller.ts`
+### `packages/treaty/src/contract.ts` (server-side runtime)
 
 ```ts
-@Controller("treaty")
-export class TreatyRoutesController {
-  /** Served from live AppModule metadata; never stale by construction. */
-  @Get("routes")
-  table(): RouteTable {
-    return scanRoutes(AppModule, {
-      exclude: [HealthController, TreatyRoutesController],
-    });
+export function createContract<C extends ContractMap>(map: C) {
+  const table = scanControllers(map); // reads each class's route + route-args
+  // metadata; transport kinds only; throws
+  // on empty/colliding entries
+  class ContractRoutesController {
+    @Get("routes")
+    table(): RouteTable {
+      return table;
+    }
   }
+  Controller("treaty")(ContractRoutesController);
+  Get("routes")(
+    ContractRoutesController.prototype,
+    "table",
+    Object.getOwnPropertyDescriptor(
+      ContractRoutesController.prototype,
+      "table",
+    )!,
+  );
+
+  return { map, table, controller: ContractRoutesController } satisfies {
+    map: C;
+    table: RouteTable;
+    controller: Function;
+  };
 }
 ```
 
-`scanRoutes` walks `Reflect.getMetadata("imports", M)` / `("controllers", M)`
-recursively, derives keys from class names, and reads each method's route
-and route-args metadata (the same source the StandardSchemaValidationPipe
-consumes), emitting transport args only. Exact metadata constants are
-pinned from `@nestjs/common` during implementation.
+(Decorator functions are plain functions — applying them programmatically is
+how the controller is generated. `scanControllers` reads the same route-args
+metadata the StandardSchemaValidationPipe consumes; exact metadata constants
+are pinned from `@nestjs/common` during implementation. The plan may instead
+hand-write the tiny controller in `packages/api` if programmatic decoration
+proves brittle — the contract surface `createContract(map) → controller` is
+what's fixed here.)
 
 ### Web — `apps/web/src/shared/api/api.ts` + one query rewrite
 
 ```ts
-import type { AppTreaty } from "@nest-mono/api/treaty";
+import type { AppContract } from "@nest-mono/api/treaty";
 import { treaty } from "@nest-mono/treaty";
 import { API_ORIGIN } from "../config";
 
-export const api = treaty<AppTreaty>(API_ORIGIN);
+export const api = treaty<AppContract>(API_ORIGIN);
 export { ApiError } from "@nest-mono/treaty";
 ```
 
