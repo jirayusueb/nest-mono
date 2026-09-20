@@ -1,9 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { ISessionTokenService } from "../../application/ports/i-session-token-service";
 
-/**
- * Cookie token = base64url(32 random bytes); DB stores its SHA-256 hex digest.
- */
 @Injectable()
 export class WebCryptoSessionTokenService implements ISessionTokenService {
   async issue(): Promise<{ token: string; tokenHash: string }> {

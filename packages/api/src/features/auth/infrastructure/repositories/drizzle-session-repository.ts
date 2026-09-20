@@ -1,23 +1,28 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { session } from "../../../../db/schema/auth";
-import type { Database } from "../../../../shared/infrastructure/database/database";
-import { DATABASE } from "../../../../shared/tokens";
+import { DATABASE, type Database } from "../../../../shared/infrastructure/database/database";
+import { activeDb } from "../../../../shared/infrastructure/database/tx-storage";
 import type { ISessionRepository } from "../../application/ports/i-session-repository";
-import { Session } from "../../domain/entities/session";
+import { SessionEntity } from "../../domain/entities/session-entity";
 import { SessionMapper } from "../mappers/session-mapper";
 
 @Injectable()
 export class DrizzleSessionRepository implements ISessionRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  /** Insert only: a session is minted once and then deleted, never updated. */
-  async save(entity: Session): Promise<void> {
-    await this.db.insert(session).values(SessionMapper.toPersistence(entity));
+  private get dbOrTx(): Database {
+    return activeDb(this.db);
   }
 
-  async findByTokenHash(tokenHash: string): Promise<Session | null> {
-    const rows = await this.db
+  async save(entity: SessionEntity): Promise<void> {
+    await this.dbOrTx
+      .insert(session)
+      .values(SessionMapper.toPersistence(entity));
+  }
+
+  async findByTokenHash(tokenHash: string): Promise<SessionEntity | null> {
+    const rows = await this.dbOrTx
       .select()
       .from(session)
       .where(eq(session.token, tokenHash))
@@ -27,6 +32,6 @@ export class DrizzleSessionRepository implements ISessionRepository {
   }
 
   async deleteByTokenHash(tokenHash: string): Promise<void> {
-    await this.db.delete(session).where(eq(session.token, tokenHash));
+    await this.dbOrTx.delete(session).where(eq(session.token, tokenHash));
   }
 }

@@ -7,7 +7,6 @@ import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/react";
 
 export interface MarkdownViewProps {
-  /** Markdown to render read-only. */
   value: string;
 }
 

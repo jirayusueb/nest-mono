@@ -1,5 +1,11 @@
+import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
 import type { UserId } from "../../../../shared/kernel/types/ids";
 import type { MediaRecord } from "../dtos/media-dtos";
+import type {
+  BucketObjectHead,
+  IBucketStore,
+} from "../ports/i-bucket-store";
+import type { IMediaRepository } from "../ports/i-media-repository";
 
 export function storedMedia(overrides: Partial<MediaRecord> = {}): MediaRecord {
   // SAFETY: fixture literals stand in for schema-issued ids.
@@ -16,74 +22,58 @@ export function storedMedia(overrides: Partial<MediaRecord> = {}): MediaRecord {
   };
 }
 
-export class MockMediaRepository {
-  records: MediaRecord[] = [];
-  confirmedKeys: string[] = [];
-
-  async save(record: MediaRecord): Promise<void> {
-    const existing = this.records.findIndex((r) => r.key === record.key);
-
-    if (existing === -1) {
-      this.records.push(record);
-    } else {
-      this.records[existing] = record;
-    }
-  }
-
-  async findByKey(key: string): Promise<MediaRecord | null> {
-    return this.records.find((r) => r.key === key) ?? null;
-  }
-
-  async listByUser(userId: UserId): Promise<MediaRecord[]> {
-    return this.records.filter((r) => r.userId === userId);
-  }
-
-  async confirm(
-    key: string,
-    bytes: number,
-    contentType: string,
-  ): Promise<void> {
-    this.confirmedKeys.push(key);
-    const row = this.records.find((r) => r.key === key);
-
-    if (row) {
-      row.bytes = bytes;
-      row.contentType = contentType;
-      row.confirmed = true;
-    }
-  }
-
-  async deleteByKey(key: string): Promise<void> {
-    this.records = this.records.filter((r) => r.key !== key);
-  }
+export interface MockMediaRepo {
+  repo: DeepMocked<IMediaRepository>;
+  records: MediaRecord[];
 }
 
-export class MockBucketStore {
-  deletedKeys: string[] = [];
+export function mockMediaRepository(seed: MediaRecord[] = []): MockMediaRepo {
+  const records = [...seed];
 
-  constructor(
-    private readonly headResult: {
-      bytes: number;
-      contentType: string;
-    } | null = {
-      bytes: 2048,
-      contentType: "image/png",
+  const repo = createMock<IMediaRepository>({
+    save: async (record) => {
+      const index = records.findIndex((r) => r.key === record.key);
+
+      if (index === -1) {
+        records.push(record);
+      } else {
+        records[index] = record;
+      }
     },
-  ) {}
+    findByKey: async (key) => records.find((r) => r.key === key) ?? null,
+    listConfirmedByUser: async (userId) =>
+      records.filter((r) => r.userId === userId && r.confirmed),
+    confirm: async (key, bytes, contentType) => {
+      const row = records.find((r) => r.key === key);
 
-  async presignPut(key: string): Promise<string> {
-    return `http://s3/media/${key}?X-Amz-Signature=test-sig`;
-  }
+      if (row) {
+        row.bytes = bytes;
+        row.contentType = contentType;
+        row.confirmed = true;
+      }
+    },
+    deleteByKey: async (key) => {
+      const index = records.findIndex((r) => r.key === key);
 
-  async head(): Promise<{ bytes: number; contentType: string } | null> {
-    return this.headResult;
-  }
+      if (index !== -1) {
+        records.splice(index, 1);
+      }
+    },
+  });
 
-  async delete(key: string): Promise<void> {
-    this.deletedKeys.push(key);
-  }
+  return { repo, records };
+}
 
-  publicUrl(key: string): string {
-    return `http://s3/media/${key}`;
-  }
+export function mockBucketStore(
+  objectHead: BucketObjectHead | null = {
+    bytes: 2048,
+    contentType: "image/png",
+  },
+): DeepMocked<IBucketStore> {
+  return createMock<IBucketStore>({
+    presignPut: async (key) =>
+      `http://s3/media/${key}?X-Amz-Signature=test-sig`,
+    head: async () => objectHead,
+    publicUrl: (key) => `http://s3/media/${key}`,
+  });
 }

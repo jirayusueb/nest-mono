@@ -27,6 +27,11 @@ function Header() {
       <span style={{ flex: 1 }} />
       {user ? (
         <>
+          {user.role === "admin" ? (
+            <Button component={Link} to="/admin" size="small">
+              Admin
+            </Button>
+          ) : null}
           <span>{user.name}</span>
           <Button
             size="small"

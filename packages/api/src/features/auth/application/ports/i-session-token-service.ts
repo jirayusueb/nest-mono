@@ -1,5 +1,6 @@
+export const SESSION_TOKEN_SERVICE = "SESSION_TOKEN_SERVICE";
+
 export interface ISessionTokenService {
-  /** Mint a fresh token pair: the cookie value and its DB digest. */
   issue(): Promise<{ token: string; tokenHash: string }>;
   hash(raw: string): Promise<string>;
 }

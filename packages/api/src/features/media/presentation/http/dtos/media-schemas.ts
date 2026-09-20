@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   ALLOWED_IMAGE_TYPES,
   MAX_UPLOAD_BYTES,
-} from "../../../domain/media-rules";
+} from "../../../domain/rules/media-rules";
 
 export const uploadTargetSchema = z.object({
   contentType: z.enum(ALLOWED_IMAGE_TYPES),
@@ -13,6 +13,8 @@ export const confirmMediaSchema = z.object({
   key: z.string().min(1),
 });
 
-export type UploadTargetBody = z.infer<typeof uploadTargetSchema>;
+export const mediaKeyParamSchema = z.string().min(1);
 
-export type ConfirmMediaBody = z.infer<typeof confirmMediaSchema>;
+export type UploadTargetRequest = z.infer<typeof uploadTargetSchema>;
+
+export type ConfirmMediaRequest = z.infer<typeof confirmMediaSchema>;

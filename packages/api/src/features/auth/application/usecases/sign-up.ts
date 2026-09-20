@@ -1,37 +1,39 @@
 import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
 import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
+import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
 import { make } from "../../../../shared/kernel/types/brand";
 import type { UserId } from "../../../../shared/kernel/types/ids";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
+import { err } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
-import { Email } from "../../../../shared/kernel/values/email";
-import { PlainPassword } from "../../domain/values/plain-password";
-import type { IssuedSessionDto } from "../dtos/issued-session-dto";
-import type { SignUpInput } from "../dtos/sign-up-input";
+import { EmailVO } from "../../../../shared/kernel/values/email-vo";
+import { NameRules } from "../../domain/rules/name-rules";
+import { PlainPasswordVO } from "../../domain/values/plain-password-vo";
+import type { IssuedSessionOutput, SignUpInput } from "../dtos/auth-dtos";
 import type { IIdentityRepository } from "../ports/i-identity-repository";
 import type { IPasswordHasher } from "../ports/i-password-hasher";
 import type { SessionIssuer } from "../services/session-issuer";
 
-export class SignUp {
+export class SignUpUseCase {
   constructor(
     private readonly identities: IIdentityRepository,
     private readonly hasher: IPasswordHasher,
     private readonly sessionIssuer: SessionIssuer,
     private readonly idGenerator: IIdGenerator,
     private readonly dateProvider: IDateProvider,
+    private readonly uow: IUnitOfWork,
   ) {}
 
   async execute(
     input: SignUpInput,
-  ): Promise<Result<IssuedSessionDto, AppError>> {
-    const email = Email.create(input.email);
+  ): Promise<Result<IssuedSessionOutput, AppError>> {
+    const email = EmailVO.create(input.email);
 
     if (email.isErr()) {
       return err(email.error);
     }
 
-    const password = PlainPassword.create(input.password);
+    const password = PlainPasswordVO.create(input.password);
 
     if (password.isErr()) {
       return err(password.error);
@@ -39,25 +41,29 @@ export class SignUp {
 
     const name = input.name.trim();
 
-    if (name.length === 0 || name.length > 100) {
-      return err(AppError.validation("Name must be 1-100 characters"));
+    const nameCheck = NameRules.validate(name);
+
+    if (!nameCheck.valid) {
+      return err(AppError.validation(nameCheck.errors.join(", ")));
     }
 
-    if (await this.identities.emailExists(email.value)) {
-      return err(AppError.conflict("User already exists"));
-    }
+    return this.uow.runInTransaction(async () => {
+      if (await this.identities.emailExists(email.value)) {
+        return err(AppError.conflict("User already exists"));
+      }
 
-    const now = this.dateProvider.now();
+      const now = this.dateProvider.now();
 
-    const identity = await this.identities.createWithCredential({
-      accountId: this.idGenerator.generate(),
-      email: email.value.value,
-      name,
-      now,
-      passwordHash: await this.hasher.hash(password.value.value),
-      userId: make<UserId>(this.idGenerator.generate()),
+      const identity = await this.identities.createWithCredential({
+        accountId: this.idGenerator.generate(),
+        email: email.value.value,
+        name,
+        now,
+        passwordHash: await this.hasher.hash(password.value.value),
+        userId: make<UserId>(this.idGenerator.generate()),
+      });
+
+      return this.sessionIssuer.issue(identity, input, now);
     });
-
-    return ok(await this.sessionIssuer.issue(identity, input, now));
   }
 }

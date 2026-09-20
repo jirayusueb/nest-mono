@@ -1,6 +1,5 @@
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-/** Column builders are stateful — factories, never shared instances. */
 const createdAt = () =>
   timestamp("created_at", { mode: "date", withTimezone: true })
     .defaultNow()
@@ -12,7 +11,6 @@ const updatedAt = () =>
     .$onUpdate(() => new Date())
     .notNull();
 
-/** better-auth-shaped user table (singular names). */
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -23,9 +21,6 @@ export const user = pgTable("user", {
   updatedAt: updatedAt(),
 });
 
-/**
- * Password credential row; `provider_id = "credential"` mirrors better-auth.
- */
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -38,10 +33,6 @@ export const account = pgTable("account", {
   updatedAt: updatedAt(),
 });
 
-/**
- * `token` stores the token DIGEST (SHA-256), never the cookie value — the
- * session mapper is where the naming gets reconciled.
- */
 export const session = pgTable(
   "session",
   {

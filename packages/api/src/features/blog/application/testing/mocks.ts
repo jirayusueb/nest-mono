@@ -1,76 +1,118 @@
+import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
 import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import { Category } from "../../domain/values/category";
-import { Slug } from "../../domain/values/slug";
-import { Tag } from "../../domain/values/tag";
-import { PostTitle } from "../../domain/values/post-title";
-import { Post, type PostProps } from "../../domain/entities/post";
+import {
+  offsetOf,
+  toPaginatedResponse,
+} from "../../../../shared/application/dtos/pagination";
+import { CategoryVO } from "../../domain/values/category-vo";
+import { SlugVO } from "../../domain/values/slug-vo";
+import { TagVO } from "../../domain/values/tag-vo";
+import { PostTitleVO } from "../../domain/values/post-title-vo";
+import { PostEntity } from "../../domain/entities/post-entity";
 import type { IPostRepository } from "../ports/i-post-repository";
 
-export function storedPost(overrides: Partial<PostProps> = {}): Post {
+interface StoredPostOverrides {
+  id?: PostId;
+  authorId?: UserId;
+  title?: PostTitleVO;
+  slug?: SlugVO;
+  content?: string;
+  category?: CategoryVO | null;
+  tags?: TagVO[];
+  thumbnailUrl?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
+}
+
+export function storedPost(overrides: StoredPostOverrides = {}): PostEntity {
   // SAFETY: fixture literals stand in for schema-issued ids.
-  return Post.restore({
+  const p = {
     id: "p1" as PostId,
     authorId: "u1" as UserId,
-    title: PostTitle.restore("Buy milk"),
-    slug: Slug.restore("buy-milk"),
+    title: PostTitleVO.restore("Buy milk"),
+    slug: SlugVO.restore("buy-milk"),
     content: "**milk**",
-    category: Category.restore("Home", "home"),
-    tags: [Tag.restore("groceries", "groceries")],
+    category: CategoryVO.restore("Home", "home"),
+    tags: [TagVO.restore("groceries", "groceries")],
     thumbnailUrl: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    deletedAt: null,
     ...overrides,
-  });
+  };
+  return PostEntity.restore(
+    p.id,
+    p.authorId,
+    p.title,
+    p.slug,
+    p.content,
+    p.category,
+    p.tags,
+    p.thumbnailUrl,
+    p.createdAt,
+    p.updatedAt,
+    p.deletedAt,
+  );
 }
 
-export class MockPostRepository implements IPostRepository {
-  posts: Post[] = [];
+export interface MockPostRepo {
+  repo: DeepMocked<IPostRepository>;
+  posts: PostEntity[];
+}
 
-  async list(): Promise<Post[]> {
-    return [...this.posts];
-  }
+export function mockPostRepository(seed: PostEntity[] = []): MockPostRepo {
+  const posts = [...seed];
 
-  async findBySlug(slug: string): Promise<Post | null> {
-    return this.posts.find((post) => post.slug === slug) ?? null;
-  }
+  const live = (): PostEntity[] => posts.filter((post) => !post.isDeleted());
 
-  async findByIdForUser(postId: PostId, userId: UserId): Promise<Post | null> {
-    return (
-      this.posts.find(
-        (post) => post.id === postId && post.authorId === userId,
-      ) ?? null
-    );
-  }
+  const repo = createMock<IPostRepository>({
+    list: async (request) => {
+      const rows = live();
+      const start = offsetOf(request);
 
-  async slugExists(slug: string): Promise<boolean> {
-    return this.posts.some((post) => post.slug === slug);
-  }
+      return toPaginatedResponse(
+        rows.slice(start, start + request.limit),
+        rows.length,
+        request,
+      );
+    },
+    findBySlug: async (slug) =>
+      live().find((post) => post.slug.value === slug) ?? null,
+    findByIdForUser: async (postId, userId) =>
+      live().find((post) => post.id === postId && post.authorId === userId) ??
+      null,
+    slugExists: async (slug) => live().some((post) => post.slug.value === slug),
+    save: async (post) => {
+      const index = posts.findIndex((p) => p.id === post.id);
 
-  async save(post: Post): Promise<void> {
-    const existing = this.posts.findIndex((p) => p.id === post.id);
-
-    if (existing === -1) {
-      this.posts.push(post);
-    } else {
-      this.posts[existing] = post;
-    }
-  }
-
-  async delete(postId: PostId, userId: UserId): Promise<void> {
-    this.posts = this.posts.filter(
-      (post) => !(post.id === postId && post.authorId === userId),
-    );
-  }
-
-  async listCategories(): Promise<Category[]> {
-    const bySlug = new Map<string, Category>();
-
-    for (const post of this.posts) {
-      if (post.category) {
-        bySlug.set(post.category.slugValue, post.category);
+      if (index === -1) {
+        posts.push(post);
+      } else {
+        posts[index] = post;
       }
-    }
+    },
+    delete: async (postId, userId, deletedAt) => {
+      const index = posts.findIndex(
+        (post) => post.id === postId && post.authorId === userId,
+      );
 
-    return [...bySlug.values()];
-  }
+      if (index !== -1) {
+        posts[index] = posts[index].delete(deletedAt);
+      }
+    },
+    listCategories: async () => {
+      const bySlug = new Map<string, CategoryVO>();
+
+      for (const post of posts) {
+        if (post.category) {
+          bySlug.set(post.category.slugValue, post.category);
+        }
+      }
+
+      return [...bySlug.values()];
+    },
+  });
+
+  return { repo, posts };
 }

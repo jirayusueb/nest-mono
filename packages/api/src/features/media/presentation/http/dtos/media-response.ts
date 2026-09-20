@@ -1,8 +1,10 @@
-import type { MediaDto } from "../../../application/dtos/media-dtos";
-
 export interface UploadTargetResponse {
   key: string;
   uploadUrl: string;
+  url: string;
+}
+
+export interface ConfirmMediaResponse {
   url: string;
 }
 
@@ -14,6 +16,6 @@ export interface MediaItemResponse {
   createdAt: string;
 }
 
-export function toMediaItemResponse(dto: MediaDto): MediaItemResponse {
-  return { ...dto, createdAt: dto.createdAt.toISOString() };
+export interface MediaListResponse {
+  media: MediaItemResponse[];
 }

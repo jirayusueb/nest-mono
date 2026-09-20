@@ -24,9 +24,11 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@golevelup/ts-vitest": "^4.0.0",
     "@types/bun": "^1.4.2",
     "@types/uuid": "^11.0.0",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "4.1.11"
   }
 }

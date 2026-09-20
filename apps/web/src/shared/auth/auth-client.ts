@@ -6,7 +6,6 @@ interface EmailPasswordInput {
   password: string;
 }
 
-/** better-auth-style surface over the hand-rolled /api/auth routes. */
 export const authClient = {
   async signUpEmail(input: EmailPasswordInput): Promise<User> {
     const body = await apiFetch<{ user: User }>("/api/auth/sign-up/email", {
@@ -30,8 +29,11 @@ export const authClient = {
     await apiFetch("/api/auth/sign-out", { method: "POST" });
   },
 
-  async getSession(): Promise<User | null> {
-    const body = await apiFetch<{ user: User } | null>("/api/auth/get-session");
+  async getSession(init: RequestInit = {}): Promise<User | null> {
+    const body = await apiFetch<{ user: User } | null>(
+      "/api/auth/get-session",
+      init,
+    );
 
     return body?.user ?? null;
   },

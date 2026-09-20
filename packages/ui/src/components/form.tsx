@@ -19,7 +19,6 @@ function FormBase({ children, onSubmit }: FormProps) {
   );
 }
 
-/** Baked defaults so pages never repeat fullWidth. */
 function Field(props: TextFieldProps) {
   return <TextField fullWidth {...props} />;
 }

@@ -1,34 +1,35 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
-  MockDateProvider,
-  MockIdGenerator,
+  mockDateProvider,
+  mockIdGenerator,
 } from "../../../../shared/application/testing/mocks";
 import type { UserId } from "../../../../shared/kernel/types/ids";
 import { make } from "../../../../shared/kernel/types/brand";
-import { CreateUploadTarget } from "./create-upload-target";
-import { MockBucketStore, MockMediaRepository } from "../testing/mocks";
+import { CreateUploadTargetUseCase } from "./create-upload-target";
+import { mockBucketStore, mockMediaRepository } from "../testing/mocks";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 
 const USER_ID = make<UserId>("u1");
 
 function setup() {
-  const repo = new MockMediaRepository();
-  const store = new MockBucketStore();
+  const { repo, records } = mockMediaRepository();
 
-  const useCase = new CreateUploadTarget(
+  const store = mockBucketStore();
+
+  const useCase = new CreateUploadTargetUseCase(
     repo,
     store,
-    new MockIdGenerator(),
-    new MockDateProvider(NOW),
+    mockIdGenerator(),
+    mockDateProvider(NOW),
   );
 
-  return { repo, store, useCase };
+  return { records, store, useCase };
 }
 
 describe("create upload target", () => {
   it("mints a pending row and a presigned URL", async () => {
-    const { repo, useCase } = setup();
+    const { records, useCase } = setup();
 
     const result = await useCase.execute({
       userId: USER_ID,
@@ -42,9 +43,9 @@ describe("create upload target", () => {
     expect(dto.uploadUrl).toContain("X-Amz-Signature=test-sig");
     expect(dto.url).toBe(`http://s3/media/${dto.key}`);
 
-    expect(repo.records).toHaveLength(1);
-    expect(repo.records[0]?.confirmed).toBe(false);
-    expect(repo.records[0]?.contentType).toBe("image/png");
+    expect(records).toHaveLength(1);
+    expect(records[0]?.confirmed).toBe(false);
+    expect(records[0]?.contentType).toBe("image/png");
   });
 
   it("rejects an oversize upload", async () => {

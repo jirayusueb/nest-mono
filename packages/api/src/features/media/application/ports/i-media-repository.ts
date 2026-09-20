@@ -1,10 +1,12 @@
 import type { UserId } from "../../../../shared/kernel/types/ids";
 import type { MediaRecord } from "../dtos/media-dtos";
 
+export const MEDIA_REPOSITORY = "MEDIA_REPOSITORY";
+
 export interface IMediaRepository {
   save(record: MediaRecord): Promise<void>;
   findByKey(key: string): Promise<MediaRecord | null>;
-  listByUser(userId: UserId): Promise<MediaRecord[]>;
+  listConfirmedByUser(userId: UserId): Promise<MediaRecord[]>;
   confirm(key: string, bytes: number, contentType: string): Promise<void>;
   deleteByKey(key: string): Promise<void>;
 }

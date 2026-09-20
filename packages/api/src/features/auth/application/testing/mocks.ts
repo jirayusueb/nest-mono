@@ -1,94 +1,130 @@
+import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
 import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import type { Email } from "../../../../shared/kernel/values/email";
-import { Session, type SessionProps } from "../../domain/entities/session";
+import { SessionEntity } from "../../domain/entities/session-entity";
+import { fakeTokenHash } from "../../domain/testing/fake-token-hash";
 import type {
   AuthIdentity,
   IIdentityRepository,
-  NewIdentity,
 } from "../ports/i-identity-repository";
 import type { IPasswordHasher } from "../ports/i-password-hasher";
 import type { ISessionRepository } from "../ports/i-session-repository";
 import type { ISessionTokenService } from "../ports/i-session-token-service";
 
-export class MockIdentityRepository implements IIdentityRepository {
-  identities: AuthIdentity[] = [];
-
-  async findByEmail(email: Email): Promise<AuthIdentity | null> {
-    return this.identities.find((i) => i.email === email.value) ?? null;
-  }
-
-  async findById(id: UserId): Promise<AuthIdentity | null> {
-    return this.identities.find((i) => i.id === id) ?? null;
-  }
-
-  async emailExists(email: Email): Promise<boolean> {
-    return this.identities.some((i) => i.email === email.value);
-  }
-
-  async createWithCredential(input: NewIdentity): Promise<AuthIdentity> {
-    const identity: AuthIdentity = {
-      id: input.userId,
-      name: input.name,
-      email: input.email,
-      image: null,
-      emailVerified: false,
-      passwordHash: input.passwordHash,
-    };
-
-    this.identities.push(identity);
-
-    return identity;
-  }
+export interface MockIdentityRepo {
+  repo: DeepMocked<IIdentityRepository>;
+  identities: AuthIdentity[];
 }
 
-export class MockSessionRepository implements ISessionRepository {
-  sessions: Session[] = [];
+export function mockIdentityRepository(
+  seed: AuthIdentity[] = [],
+): MockIdentityRepo {
+  const identities = [...seed];
 
-  async save(entity: Session): Promise<void> {
-    this.sessions.push(entity);
-  }
+  const repo = createMock<IIdentityRepository>({
+    findByEmail: async (email) =>
+      identities.find((i) => i.email === email.value) ?? null,
+    findById: async (id) => identities.find((i) => i.id === id) ?? null,
+    emailExists: async (email) =>
+      identities.some((i) => i.email === email.value),
+    createWithCredential: async (input) => {
+      const identity: AuthIdentity = {
+        id: input.userId,
+        name: input.name,
+        email: input.email,
+        image: null,
+        emailVerified: false,
+        passwordHash: input.passwordHash,
+      };
 
-  async findByTokenHash(tokenHash: string): Promise<Session | null> {
-    return this.sessions.find((s) => s.tokenHash === tokenHash) ?? null;
-  }
+      identities.push(identity);
 
-  async deleteByTokenHash(tokenHash: string): Promise<void> {
-    this.sessions = this.sessions.filter((s) => s.tokenHash !== tokenHash);
-  }
+      return identity;
+    },
+  });
+
+  return { repo, identities };
 }
 
-export class PrefixPasswordHasher implements IPasswordHasher {
-  async hash(plain: string): Promise<string> {
-    return `prefix:${plain}`;
-  }
-
-  async verify(plain: string, stored: string): Promise<boolean> {
-    return stored === `prefix:${plain}`;
-  }
+export interface MockSessionRepo {
+  repo: DeepMocked<ISessionRepository>;
+  sessions: SessionEntity[];
 }
 
-export class FixedSessionTokenService implements ISessionTokenService {
-  async issue(): Promise<{ token: string; tokenHash: string }> {
-    return { token: "raw-token", tokenHash: "hashed:raw-token" };
-  }
+export function mockSessionRepository(
+  seed: SessionEntity[] = [],
+): MockSessionRepo {
+  const sessions = [...seed];
 
-  async hash(raw: string): Promise<string> {
-    return `hashed:${raw}`;
-  }
+  const repo = createMock<ISessionRepository>({
+    save: async (entity) => {
+      sessions.push(entity);
+    },
+    findByTokenHash: async (tokenHash) =>
+      sessions.find((s) => s.tokenHash === tokenHash) ?? null,
+    deleteByTokenHash: async (tokenHash) => {
+      const index = sessions.findIndex((s) => s.tokenHash === tokenHash);
+
+      if (index !== -1) {
+        sessions.splice(index, 1);
+      }
+    },
+  });
+
+  return { repo, sessions };
 }
 
-/** Handy factory for wiring a stored session in one line. */
-export function storedSession(overrides: Partial<SessionProps> = {}): Session {
+export function mockPasswordHasher(): DeepMocked<IPasswordHasher> {
+  return createMock<IPasswordHasher>({
+    hash: async (plain) => `prefix:${plain}`,
+    verify: async (plain, stored) => stored === `prefix:${plain}`,
+  });
+}
+
+export function mockSessionTokenService(): DeepMocked<ISessionTokenService> {
+  return createMock<ISessionTokenService>({
+    issue: async () => ({
+      token: "raw-token",
+      tokenHash: fakeTokenHash("raw-token"),
+    }),
+    hash: async (raw) => fakeTokenHash(raw),
+  });
+}
+
+interface StoredSessionOverrides {
+  id?: SessionId;
+  userId?: UserId;
+  tokenHash?: string;
+  expiresAt?: Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export function storedSession(
+  overrides: StoredSessionOverrides = {},
+): SessionEntity {
   // SAFETY: fixture literals stand in for schema-issued ids.
-  return Session.restore({
+  const p = {
     id: "s1" as SessionId,
     userId: "u1" as UserId,
-    tokenHash: "hashed:tok",
+    tokenHash: fakeTokenHash("tok"),
     expiresAt: new Date("2026-01-02T00:00:00.000Z"),
     ipAddress: null,
     userAgent: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
-  });
+  };
+
+  return SessionEntity.restore(
+    p.id,
+    p.userId,
+    p.tokenHash,
+    p.expiresAt,
+    p.ipAddress,
+    p.userAgent,
+    p.createdAt,
+    p.updatedAt,
+  );
 }

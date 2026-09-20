@@ -7,18 +7,18 @@ import {
   EXTENSION_BY_TYPE,
   MAX_UPLOAD_BYTES,
   isAllowedImageType,
-} from "../../domain/media-rules";
+} from "../../domain/rules/media-rules";
 import type {
   CreateUploadTargetInput,
   MediaRecord,
-  UploadTargetDto,
+  UploadTargetOutput,
 } from "../dtos/media-dtos";
 import type { IBucketStore } from "../ports/i-bucket-store";
 import type { IMediaRepository } from "../ports/i-media-repository";
 
 const PRESIGN_TTL_SECONDS = 300;
 
-export class CreateUploadTarget {
+export class CreateUploadTargetUseCase {
   constructor(
     private readonly repo: IMediaRepository,
     private readonly store: IBucketStore,
@@ -28,7 +28,7 @@ export class CreateUploadTarget {
 
   async execute(
     input: CreateUploadTargetInput,
-  ): Promise<Result<UploadTargetDto, AppError>> {
+  ): Promise<Result<UploadTargetOutput, AppError>> {
     if (
       !isAllowedImageType(input.contentType) ||
       input.bytes > MAX_UPLOAD_BYTES

@@ -1,20 +1,14 @@
-/**
- * The HTTP face of each code. An unmapped code is a gap, not a client fault.
- */
 const HTTP_BY_CODE = {
   Conflict: { status: 409, title: "Conflict" },
+  Forbidden: { status: 403, title: "Forbidden" },
   NotFound: { status: 404, title: "Not Found" },
   Unauthorized: { status: 401, title: "Unauthorized" },
   ValidationFailed: { status: 400, title: "Bad Request" },
+  DomainError: { status: 422, title: "Unprocessable Entity" },
 } as const;
 
 const UNMAPPED = { status: 500, title: "Internal Server Error" } as const;
 
-/**
- * Structured details carried in the problem document's `details` member. Owned
- * by the validation pipe today; extend with named members as producers appear —
- * never an open dictionary.
- */
 export interface ErrorDetails {
   issues?: Array<{
     path?: ReadonlyArray<string | number | symbol | { key: PropertyKey }>;
@@ -22,8 +16,7 @@ export interface ErrorDetails {
   }>;
 }
 
-/** The JSON body `toResponse` serves. */
-interface ProblemBody {
+interface ProblemDetails {
   type: string;
   code: string;
   detail: string;
@@ -32,11 +25,6 @@ interface ProblemBody {
   details?: ErrorDetails;
 }
 
-/**
- * Domain/application failure. Extends Error so it can be thrown across any
- * boundary (and carry a stack), and describes its own HTTP response so no
- * separate error-mapping hook is needed at any edge.
- */
 export class AppError extends Error {
   constructor(
     public readonly code: string,
@@ -47,20 +35,18 @@ export class AppError extends Error {
     this.name = "AppError";
   }
 
-  /** Read by the app's logging hook to tell client faults from real 500s. */
   get status(): number {
     // SAFETY: codes missing from the map fall through to UNMAPPED at runtime.
     return (HTTP_BY_CODE[this.code as keyof typeof HTTP_BY_CODE] ?? UNMAPPED)
       .status;
   }
 
-  /** RFC 9457 problem document, served as the error wire format. */
   toResponse(): Response {
     // SAFETY: codes missing from the map fall through to UNMAPPED at runtime.
     const { status, title } =
       HTTP_BY_CODE[this.code as keyof typeof HTTP_BY_CODE] ?? UNMAPPED;
 
-    const body: ProblemBody = {
+    const body: ProblemDetails = {
       type: "about:blank",
       code: this.code,
       detail: this.message,
@@ -90,5 +76,9 @@ export class AppError extends Error {
 
   static conflict(message: string): AppError {
     return new AppError("Conflict", message);
+  }
+
+  static forbidden(message = "Forbidden"): AppError {
+    return new AppError("Forbidden", message);
   }
 }

@@ -18,10 +18,6 @@ const updatedAt = () =>
     .$onUpdate(() => new Date())
     .notNull();
 
-/**
- * One row per upload target. `confirmed` flips when the browser's direct PUT to
- * RustFS is verified via a HEAD in `ConfirmMedia`.
- */
 export const media = pgTable("media", {
   id: text("id").primaryKey(),
   userId: text("user_id")

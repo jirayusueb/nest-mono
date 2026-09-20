@@ -1,33 +1,28 @@
 import type { session } from "../../../../db/schema/auth";
 import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import { Session } from "../../domain/entities/session";
+import { SessionEntity } from "../../domain/entities/session-entity";
 
 type SessionRow = typeof session.$inferSelect;
 
 type SessionInsert = typeof session.$inferInsert;
 
 export class SessionMapper {
-  /**
-   * STRICT RULE: always restore(), never issue() — persistence rows are a
-   * trusted source. `token` holds the digest, never the cookie value.
-   */
-  static toDomain(row: SessionRow): Session {
+  static toDomain(row: SessionRow): SessionEntity {
     // SAFETY: rows come from our own schema; branded ids restore without
     // revalidation.
-    return Session.restore({
-      createdAt: row.createdAt,
-      expiresAt: row.expiresAt,
-      id: row.id as SessionId,
-      ipAddress: row.ipAddress,
-      tokenHash: row.token,
-      updatedAt: row.updatedAt,
-      userAgent: row.userAgent,
-      userId: row.userId as UserId,
-    });
+    return SessionEntity.restore(
+      row.id as SessionId,
+      row.userId as UserId,
+      row.token,
+      row.expiresAt,
+      row.ipAddress,
+      row.userAgent,
+      row.createdAt,
+      row.updatedAt,
+    );
   }
 
-  /** `updatedAt` is notNull with no DB default, so it must be written here. */
-  static toPersistence(entity: Session): SessionInsert {
+  static toPersistence(entity: SessionEntity): SessionInsert {
     return {
       createdAt: entity.createdAt,
       expiresAt: entity.expiresAt,

@@ -1,33 +1,35 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
-  MockDateProvider,
-  MockIdGenerator,
+  mockDateProvider,
+  mockIdGenerator,
+  mockUnitOfWork,
 } from "../../../../shared/application/testing/mocks";
 import type { UserId } from "../../../../shared/kernel/types/ids";
 import { make } from "../../../../shared/kernel/types/brand";
-import { Slug } from "../../domain/values/slug";
-import { CreatePost } from "./create-post";
-import { MockPostRepository, storedPost } from "../testing/mocks";
+import { SlugVO } from "../../domain/values/slug-vo";
+import { CreatePostUseCase } from "./create-post";
+import { mockPostRepository, storedPost } from "../testing/mocks";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 
 const USER_ID = make<UserId>("u1");
 
 function setup() {
-  const repo = new MockPostRepository();
+  const { repo, posts } = mockPostRepository();
 
-  const useCase = new CreatePost(
+  const useCase = new CreatePostUseCase(
     repo,
-    new MockIdGenerator(),
-    new MockDateProvider(NOW),
+    mockIdGenerator(),
+    mockDateProvider(NOW),
+    mockUnitOfWork(),
   );
 
-  return { repo, useCase };
+  return { posts, useCase };
 }
 
 describe("create post", () => {
   it("creates a post with a derived slug, category, tags, and thumbnail", async () => {
-    const { repo, useCase } = setup();
+    const { posts, useCase } = setup();
 
     const result = await useCase.execute({
       userId: USER_ID,
@@ -48,12 +50,12 @@ describe("create post", () => {
     ]);
     expect(dto.thumbnailUrl).toBe("https://cdn.example.com/a.png");
     expect(dto.createdAt.toISOString()).toBe(NOW.toISOString());
-    expect(repo.posts).toHaveLength(1);
+    expect(posts).toHaveLength(1);
   });
 
   it("suffixes the slug when it is already taken", async () => {
-    const { repo, useCase } = setup();
-    repo.posts.push(storedPost({ slug: Slug.restore("weekend-wrap") }));
+    const { posts, useCase } = setup();
+    posts.push(storedPost({ slug: SlugVO.restore("weekend-wrap") }));
 
     const result = await useCase.execute({
       userId: USER_ID,
@@ -77,7 +79,7 @@ describe("create post", () => {
     });
 
     expect(result.isErr()).toBe(true);
-    expect(result.isErr() && result.error.code).toBe("ValidationFailed");
+    expect(result.isErr() && result.error.code).toBe("DomainError");
   });
 
   it("rejects an invalid category name", async () => {
@@ -92,6 +94,20 @@ describe("create post", () => {
     });
 
     expect(result.isErr()).toBe(true);
-    expect(result.isErr() && result.error.code).toBe("ValidationFailed");
+    expect(result.isErr() && result.error.code).toBe("DomainError");
+  });
+
+  it("rejects tags that collapse to the same slug", async () => {
+    const { useCase } = setup();
+
+    const result = await useCase.execute({
+      userId: USER_ID,
+      title: "Weekend Wrap",
+      content: "",
+      tags: ["News", "news"],
+    });
+
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() && result.error.code).toBe("DomainError");
   });
 });

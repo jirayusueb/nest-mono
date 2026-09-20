@@ -8,65 +8,63 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
-import { make } from "../../../../shared/kernel/types/brand";
-import type { PostId } from "../../../../shared/kernel/types/ids";
+import {
+  type PaginatedResponse,
+} from "../../../../shared/application/dtos/pagination";
 import type { SessionUser } from "../../../../shared/kernel/types/session-user";
+import { AdminGuard } from "../../../../shared/presentation/http/admin.guard";
 import { CurrentUser } from "../../../../shared/presentation/http/current-user.decorator";
 import { SessionGuard } from "../../../../shared/presentation/http/session.guard";
-import { CreatePost } from "../../application/usecases/create-post";
-import { DeletePost } from "../../application/usecases/delete-post";
-import { GetPostBySlug } from "../../application/usecases/get-post-by-slug";
-import { ListCategories } from "../../application/usecases/list-categories";
-import { ListPosts } from "../../application/usecases/list-posts";
-import { UpdatePost } from "../../application/usecases/update-post";
-import {
-  toPostResponse,
-  type CategoryResponse,
-  type PostResponse,
+import { CreatePostUseCase } from "../../application/usecases/create-post";
+import { DeletePostUseCase } from "../../application/usecases/delete-post";
+import { GetPostBySlugUseCase } from "../../application/usecases/get-post-by-slug";
+import { ListCategoriesUseCase } from "../../application/usecases/list-categories";
+import { ListPostsUseCase } from "../../application/usecases/list-posts";
+import { UpdatePostUseCase } from "../../application/usecases/update-post";
+import type {
+  CategoryListResponse,
+  PostResponse,
 } from "./dtos/blog-response";
+import { BlogMappers } from "./mappers/blog-mappers";
 import {
   createPostSchema,
   idSchema,
+  listPostsQuerySchema,
   slugParamSchema,
   updatePostSchema,
-  type CreatePostBody,
-  type UpdatePostBody,
+  type CreatePostRequest,
+  type ListPostsRequest,
+  type UpdatePostRequest,
 } from "./dtos/blog-schemas";
 
-/** Reads are public; writes are session-guarded per route. */
 @Controller("api/posts")
 export class BlogController {
   constructor(
-    @Inject(ListPosts) private readonly listPosts: ListPosts,
-    @Inject(ListCategories) private readonly listCategories: ListCategories,
-    @Inject(GetPostBySlug) private readonly getPostBySlug: GetPostBySlug,
-    @Inject(CreatePost) private readonly createPost: CreatePost,
-    @Inject(UpdatePost) private readonly updatePost: UpdatePost,
-    @Inject(DeletePost) private readonly deletePost: DeletePost,
+    @Inject(ListPostsUseCase) private readonly listPosts: ListPostsUseCase,
+    @Inject(ListCategoriesUseCase)
+    private readonly listCategories: ListCategoriesUseCase,
+    @Inject(GetPostBySlugUseCase)
+    private readonly getPostBySlug: GetPostBySlugUseCase,
+    @Inject(CreatePostUseCase) private readonly createPost: CreatePostUseCase,
+    @Inject(UpdatePostUseCase) private readonly updatePost: UpdatePostUseCase,
+    @Inject(DeletePostUseCase) private readonly deletePost: DeletePostUseCase,
   ) {}
 
   @Get()
-  async list(): Promise<{ posts: PostResponse[] }> {
-    const result = await this.listPosts.execute();
+  async list(
+    @Query({ schema: listPostsQuerySchema }) query: ListPostsRequest,
+  ): Promise<PaginatedResponse<PostResponse>> {
+    const result = await this.listPosts.execute(query);
 
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    return { posts: result.value.posts.map(toPostResponse) };
+    return { ...result, items: result.items.map(BlogMappers.toPostResponse) };
   }
 
   @Get("categories")
-  async categories(): Promise<{ categories: CategoryResponse[] }> {
-    const result = await this.listCategories.execute();
-
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    return result.value;
+  async categories(): Promise<CategoryListResponse> {
+    return this.listCategories.execute();
   }
 
   @Get(":slug")
@@ -79,46 +77,43 @@ export class BlogController {
       throw result.error;
     }
 
-    return toPostResponse(result.value);
+    return BlogMappers.toPostResponse(result.value);
   }
 
   @Post()
-  @UseGuards(SessionGuard)
+  @UseGuards(SessionGuard, AdminGuard)
   @HttpCode(201)
   async create(
-    @Body({ schema: createPostSchema }) body: CreatePostBody,
+    @Body({ schema: createPostSchema }) body: CreatePostRequest,
     @CurrentUser() identity: SessionUser,
   ): Promise<PostResponse> {
-    const result = await this.createPost.execute({
-      ...body,
-      userId: identity.id,
-    });
+    const result = await this.createPost.execute(
+      BlogMappers.toCreatePostInput(body, identity.id),
+    );
 
     if (result.isErr()) {
       throw result.error;
     }
 
-    return toPostResponse(result.value);
+    return BlogMappers.toPostResponse(result.value);
   }
 
   @Patch(":id")
   @UseGuards(SessionGuard)
   async update(
     @Param("id", { schema: idSchema }) id: string,
-    @Body({ schema: updatePostSchema }) body: UpdatePostBody,
+    @Body({ schema: updatePostSchema }) body: UpdatePostRequest,
     @CurrentUser() identity: SessionUser,
   ): Promise<PostResponse> {
-    const result = await this.updatePost.execute({
-      ...body,
-      postId: make<PostId>(id),
-      userId: identity.id,
-    });
+    const result = await this.updatePost.execute(
+      BlogMappers.toUpdatePostInput(body, id, identity.id),
+    );
 
     if (result.isErr()) {
       throw result.error;
     }
 
-    return toPostResponse(result.value);
+    return BlogMappers.toPostResponse(result.value);
   }
 
   @Delete(":id")
@@ -128,10 +123,9 @@ export class BlogController {
     @Param("id", { schema: idSchema }) id: string,
     @CurrentUser() identity: SessionUser,
   ): Promise<void> {
-    const result = await this.deletePost.execute({
-      postId: make<PostId>(id),
-      userId: identity.id,
-    });
+    const result = await this.deletePost.execute(
+      BlogMappers.toDeletePostInput(id, identity.id),
+    );
 
     if (result.isErr()) {
       throw result.error;

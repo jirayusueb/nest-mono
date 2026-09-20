@@ -1,9 +1,12 @@
-import { describe, expect, it } from "bun:test";
-import { MockDateProvider } from "../../../../shared/application/testing/mocks";
+import { describe, expect, it } from "vitest";
+import {
+  mockDateProvider,
+  mockUnitOfWork,
+} from "../../../../shared/application/testing/mocks";
 import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
 import { make } from "../../../../shared/kernel/types/brand";
-import { UpdatePost } from "./update-post";
-import { MockPostRepository, storedPost } from "../testing/mocks";
+import { UpdatePostUseCase } from "./update-post";
+import { mockPostRepository, storedPost } from "../testing/mocks";
 
 const NOW = new Date("2026-01-02T00:00:00.000Z");
 
@@ -14,11 +17,15 @@ const USER_ID = make<UserId>("u1");
 const OTHER_USER = make<UserId>("u2");
 
 function setup() {
-  const repo = new MockPostRepository();
-  repo.posts.push(storedPost());
-  const useCase = new UpdatePost(repo, new MockDateProvider(NOW));
+  const { repo, posts } = mockPostRepository([storedPost()]);
 
-  return { repo, useCase };
+  const useCase = new UpdatePostUseCase(
+    repo,
+    mockDateProvider(NOW),
+    mockUnitOfWork(),
+  );
+
+  return { posts, useCase };
 }
 
 describe("update post", () => {
@@ -36,7 +43,7 @@ describe("update post", () => {
   });
 
   it("updates content while keeping the slug immutable", async () => {
-    const { repo, useCase } = setup();
+    const { posts, useCase } = setup();
 
     const result = await useCase.execute({
       userId: USER_ID,
@@ -52,7 +59,7 @@ describe("update post", () => {
     expect(dto.content).toBe("done **milk**");
     expect(dto.updatedAt.toISOString()).toBe(NOW.toISOString());
     expect(dto.createdAt.toISOString()).toBe("2026-01-01T00:00:00.000Z");
-    expect(repo.posts[0]?.title.value).toBe("Buy oat milk");
+    expect(posts[0]?.title.value).toBe("Buy oat milk");
   });
 
   it("clears the category and thumbnail on explicit null", async () => {

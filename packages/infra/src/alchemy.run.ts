@@ -6,10 +6,6 @@ const POSTGRES_IMAGE = "postgres:18-alpine";
 
 const RUSTFS_IMAGE = "rustfs/rustfs:latest";
 
-/**
- * Local data tier: Postgres 18 + RustFS (S3 API). `DEPLOY_APPS=true`
- * additionally builds and runs the server image.
- */
 export default Alchemy.Stack(
   "NestMono",
   {

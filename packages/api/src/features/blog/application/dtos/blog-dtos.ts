@@ -1,7 +1,7 @@
 import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import type { Post } from "../../domain/entities/post";
+import type { PostEntity } from "../../domain/entities/post-entity";
 
-export interface PostDto {
+export interface PostOutput {
   id: string;
   slug: string;
   title: string;
@@ -27,16 +27,33 @@ export interface UpdatePostInput {
   postId: PostId;
   title?: string;
   content?: string;
-  /** `null` clears; absent keeps current. */
   category?: string | null;
   tags?: string[];
   thumbnailUrl?: string | null;
 }
 
-export function toPostDto(post: Post): PostDto {
+export interface GetPostBySlugInput {
+  slug: string;
+}
+
+export interface DeletePostInput {
+  postId: PostId;
+  userId: UserId;
+}
+
+export interface CategoryOutput {
+  name: string;
+  slug: string;
+}
+
+export interface ListCategoriesOutput {
+  categories: CategoryOutput[];
+}
+
+export function toPostOutput(post: PostEntity): PostOutput {
   return {
     id: post.id,
-    slug: post.slug,
+    slug: post.slug.value,
     title: post.title.value,
     content: post.content,
     category:

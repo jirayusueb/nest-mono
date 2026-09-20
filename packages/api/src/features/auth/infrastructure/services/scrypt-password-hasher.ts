@@ -5,9 +5,6 @@ import { Result } from "../../../../shared/kernel/types/result";
 
 const KEY_LENGTH = 64;
 
-/**
- * better-auth's default password hashing: scrypt, 16-byte salt, 64-byte key.
- */
 @Injectable()
 export class ScryptPasswordHasher implements IPasswordHasher {
   async hash(plain: string): Promise<string> {

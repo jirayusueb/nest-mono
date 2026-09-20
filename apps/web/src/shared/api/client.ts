@@ -10,7 +10,15 @@ export class ApiError extends Error {
   }
 }
 
-/** Cookies ride along; JSON both ways when a body is given. */
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},

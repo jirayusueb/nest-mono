@@ -1,20 +1,17 @@
-import { ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
+import type { ListCategoriesOutput } from "../dtos/blog-dtos";
 import type { IPostRepository } from "../ports/i-post-repository";
 
-export class ListCategories {
+export class ListCategoriesUseCase {
   constructor(private readonly repo: IPostRepository) {}
 
-  async execute(): Promise<
-    Result<{ categories: { name: string; slug: string }[] }, never>
-  > {
+  async execute(): Promise<ListCategoriesOutput> {
     const categories = await this.repo.listCategories();
 
-    return ok({
+    return {
       categories: categories.map((category) => ({
         name: category.name,
         slug: category.slugValue,
       })),
-    });
+    };
   }
 }

@@ -1,7 +1,5 @@
-/**
- * Structured log metadata. Values must be JSON scalars so log shippers can
- * index them; nest structured data in `error` instead.
- */
+export const LOGGER = "LOGGER";
+
 export type LogMeta = Record<string, string | number | boolean | null>;
 
 export interface ILogger {

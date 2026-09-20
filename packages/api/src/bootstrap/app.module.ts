@@ -1,19 +1,29 @@
-import { Module } from "@nestjs/common";
+import { type DynamicModule, Module } from "@nestjs/common";
 import { AuthModule } from "../features/auth/auth.module";
 import { BlogModule } from "../features/blog/blog.module";
 import { UserModule } from "../features/user/user.module";
 import { MediaModule } from "../features/media/media.module";
+import { ConfigModule } from "../shared/infrastructure/config.module";
+import type { Env } from "../shared/infrastructure/config/env";
 import { DatabaseModule } from "../shared/infrastructure/database.module";
-import { SessionModule } from "./session.module";
+import { SessionModule } from "../features/auth/session.module";
+import { AppErrorFilter } from "../shared/presentation/http/app-error.filter";
 
-@Module({
-  imports: [
-    DatabaseModule,
-    SessionModule,
-    AuthModule,
-    UserModule,
-    BlogModule,
-    MediaModule,
-  ],
-})
-export class AppModule {}
+@Module({})
+export class AppModule {
+  static forRoot(env: Env): DynamicModule {
+    return {
+      module: AppModule,
+      imports: [
+        ConfigModule.forRoot(env),
+        DatabaseModule,
+        SessionModule,
+        AuthModule,
+        UserModule,
+        BlogModule,
+        MediaModule,
+      ],
+      providers: [AppErrorFilter],
+    };
+  }
+}

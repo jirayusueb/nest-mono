@@ -1,18 +1,14 @@
 import { Module } from "@nestjs/common";
-import type { IDateProvider } from "../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
-import {
-  DATE_PROVIDER,
-  ID_GENERATOR,
-  POST_REPOSITORY,
-} from "../../shared/tokens";
-import { CreatePost } from "./application/usecases/create-post";
-import { DeletePost } from "./application/usecases/delete-post";
-import { GetPostBySlug } from "./application/usecases/get-post-by-slug";
-import { ListCategories } from "./application/usecases/list-categories";
-import { ListPosts } from "./application/usecases/list-posts";
-import { UpdatePost } from "./application/usecases/update-post";
-import type { IPostRepository } from "./application/ports/i-post-repository";
+import { ID_GENERATOR, type IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
+import { UNIT_OF_WORK, type IUnitOfWork } from "../../shared/application/interfaces/i-unit-of-work";
+import { DATE_PROVIDER, type IDateProvider } from "../../shared/application/interfaces/i-date-provider";
+import { CreatePostUseCase } from "./application/usecases/create-post";
+import { DeletePostUseCase } from "./application/usecases/delete-post";
+import { GetPostBySlugUseCase } from "./application/usecases/get-post-by-slug";
+import { ListCategoriesUseCase } from "./application/usecases/list-categories";
+import { ListPostsUseCase } from "./application/usecases/list-posts";
+import { UpdatePostUseCase } from "./application/usecases/update-post";
+import { POST_REPOSITORY, type IPostRepository } from "./application/ports/i-post-repository";
 import { DrizzleBlogRepository } from "./infrastructure/repositories/drizzle-blog-repository";
 import { BlogController } from "./presentation/http/blog.controller";
 
@@ -21,39 +17,47 @@ import { BlogController } from "./presentation/http/blog.controller";
   providers: [
     { provide: POST_REPOSITORY, useClass: DrizzleBlogRepository },
     {
-      provide: ListPosts,
-      useFactory: (repo: IPostRepository) => new ListPosts(repo),
+      provide: ListPostsUseCase,
+      useFactory: (repo: IPostRepository) => new ListPostsUseCase(repo),
       inject: [POST_REPOSITORY],
     },
     {
-      provide: ListCategories,
-      useFactory: (repo: IPostRepository) => new ListCategories(repo),
+      provide: ListCategoriesUseCase,
+      useFactory: (repo: IPostRepository) => new ListCategoriesUseCase(repo),
       inject: [POST_REPOSITORY],
     },
     {
-      provide: GetPostBySlug,
-      useFactory: (repo: IPostRepository) => new GetPostBySlug(repo),
+      provide: GetPostBySlugUseCase,
+      useFactory: (repo: IPostRepository) => new GetPostBySlugUseCase(repo),
       inject: [POST_REPOSITORY],
     },
     {
-      provide: CreatePost,
+      provide: CreatePostUseCase,
       useFactory: (
         repo: IPostRepository,
         ids: IIdGenerator,
-        dates: IDateProvider,
-      ) => new CreatePost(repo, ids, dates),
-      inject: [POST_REPOSITORY, ID_GENERATOR, DATE_PROVIDER],
+        clock: IDateProvider,
+        uow: IUnitOfWork,
+      ) => new CreatePostUseCase(repo, ids, clock, uow),
+      inject: [POST_REPOSITORY, ID_GENERATOR, DATE_PROVIDER, UNIT_OF_WORK],
     },
     {
-      provide: UpdatePost,
-      useFactory: (repo: IPostRepository, dates: IDateProvider) =>
-        new UpdatePost(repo, dates),
-      inject: [POST_REPOSITORY, DATE_PROVIDER],
+      provide: UpdatePostUseCase,
+      useFactory: (
+        repo: IPostRepository,
+        clock: IDateProvider,
+        uow: IUnitOfWork,
+      ) => new UpdatePostUseCase(repo, clock, uow),
+      inject: [POST_REPOSITORY, DATE_PROVIDER, UNIT_OF_WORK],
     },
     {
-      provide: DeletePost,
-      useFactory: (repo: IPostRepository) => new DeletePost(repo),
-      inject: [POST_REPOSITORY],
+      provide: DeletePostUseCase,
+      useFactory: (
+        repo: IPostRepository,
+        clock: IDateProvider,
+        uow: IUnitOfWork,
+      ) => new DeletePostUseCase(repo, clock, uow),
+      inject: [POST_REPOSITORY, DATE_PROVIDER, UNIT_OF_WORK],
     },
   ],
 })

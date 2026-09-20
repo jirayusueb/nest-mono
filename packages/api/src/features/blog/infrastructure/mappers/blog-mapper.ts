@@ -1,10 +1,10 @@
 import type { category, post } from "../../../../db/schema/blog";
 import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import { Post } from "../../domain/entities/post";
-import { Category } from "../../domain/values/category";
-import { Tag } from "../../domain/values/tag";
-import { PostTitle } from "../../domain/values/post-title";
-import { Slug } from "../../domain/values/slug";
+import { PostEntity } from "../../domain/entities/post-entity";
+import { CategoryVO } from "../../domain/values/category-vo";
+import { TagVO } from "../../domain/values/tag-vo";
+import { PostTitleVO } from "../../domain/values/post-title-vo";
+import { SlugVO } from "../../domain/values/slug-vo";
 
 export type PostRow = typeof post.$inferSelect;
 
@@ -13,28 +13,27 @@ export type CategoryRow = typeof category.$inferSelect;
 export type TagRefRow = { name: string; slug: string };
 
 export class BlogMapper {
-  /** Persistence rows are a trusted source — restore only. */
   static toDomain(
     postRow: PostRow,
     categoryRow: CategoryRow | null,
     tagRows: TagRefRow[],
-  ): Post {
+  ): PostEntity {
     // SAFETY: rows come from our own schema; branded ids restore without
     // revalidation.
-    return Post.restore({
-      id: postRow.id as PostId,
-      authorId: postRow.authorId as UserId,
-      title: PostTitle.restore(postRow.title),
-      slug: Slug.restore(postRow.slug),
-      content: postRow.content,
-      category:
-        categoryRow === null
-          ? null
-          : Category.restore(categoryRow.name, categoryRow.slug),
-      tags: tagRows.map((row) => Tag.restore(row.name, row.slug)),
-      thumbnailUrl: postRow.thumbnailUrl,
-      createdAt: postRow.createdAt,
-      updatedAt: postRow.updatedAt,
-    });
+    return PostEntity.restore(
+      postRow.id as PostId,
+      postRow.authorId as UserId,
+      PostTitleVO.restore(postRow.title),
+      SlugVO.restore(postRow.slug),
+      postRow.content,
+      categoryRow === null
+        ? null
+        : CategoryVO.restore(categoryRow.name, categoryRow.slug),
+      tagRows.map((row) => TagVO.restore(row.name, row.slug)),
+      postRow.thumbnailUrl,
+      postRow.createdAt,
+      postRow.updatedAt,
+      postRow.deletedAt,
+    );
   }
 }

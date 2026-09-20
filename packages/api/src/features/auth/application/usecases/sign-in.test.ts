@@ -1,17 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
-  MockDateProvider,
-  MockIdGenerator,
+  mockDateProvider,
+  mockIdGenerator,
 } from "../../../../shared/application/testing/mocks";
 import type { AuthIdentity } from "../ports/i-identity-repository";
 import { SessionIssuer } from "../services/session-issuer";
 import {
-  FixedSessionTokenService,
-  MockIdentityRepository,
-  MockSessionRepository,
-  PrefixPasswordHasher,
+  mockIdentityRepository,
+  mockPasswordHasher,
+  mockSessionRepository,
+  mockSessionTokenService,
 } from "../testing/mocks";
-import { SignIn } from "./sign-in";
+import { SignInUseCase } from "./sign-in";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 
@@ -25,18 +25,18 @@ const ADA: AuthIdentity = {
 };
 
 function setup(seed: AuthIdentity[] = [ADA]) {
-  const identities = new MockIdentityRepository();
-  identities.identities.push(...seed);
-  const clock = new MockDateProvider(NOW);
+  const { repo: identities } = mockIdentityRepository(seed);
+  const clock = mockDateProvider(NOW);
 
-  const useCase = new SignIn(
+  const useCase = new SignInUseCase(
     identities,
-    new PrefixPasswordHasher(),
+    mockPasswordHasher(),
     new SessionIssuer(
-      new MockSessionRepository(),
-      new FixedSessionTokenService(),
-      new MockIdGenerator(),
+      mockSessionRepository().repo,
+      mockSessionTokenService(),
+      mockIdGenerator(),
       clock,
+      new Set<string>(),
     ),
     clock,
   );

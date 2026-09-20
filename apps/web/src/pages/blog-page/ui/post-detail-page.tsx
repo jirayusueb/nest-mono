@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { MarkdownView, Page } from "@nest-mono/ui";
 import { useSession } from "~/entities/user";
-import { POST_QUERIES } from "../api/post-queries";
+import { POST_QUERIES } from "~/features/manage-posts";
 
 export function PostDetailPage() {
   const { slug } = useParams({ from: "/blog/$slug" });
@@ -57,9 +57,9 @@ export function PostDetailPage() {
         ) : null}
       </Page.Header>
       <MarkdownView value={post.content} />
-      {user ? (
+      {user?.role === "admin" ? (
         <p>
-          <Link to="/">← Manage posts</Link>
+          <Link to="/admin">← Manage posts</Link>
         </p>
       ) : null}
     </Page>

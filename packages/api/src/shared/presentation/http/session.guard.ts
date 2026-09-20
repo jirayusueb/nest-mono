@@ -5,10 +5,9 @@ import {
   type ExecutionContext,
 } from "@nestjs/common";
 import type { FastifyRequest } from "fastify";
-import type { ISessionResolver } from "../../application/interfaces/i-session-resolver";
+import { SESSION_RESOLVER, type ISessionResolver } from "../../application/interfaces/i-session-resolver";
 import { AppError } from "../../kernel/errors/app-error";
 import type { SessionUser } from "../../kernel/types/session-user";
-import { SESSION_RESOLVER } from "../../tokens";
 import { readSessionToken } from "./cookie";
 
 export type AuthenticatedRequest = FastifyRequest & {

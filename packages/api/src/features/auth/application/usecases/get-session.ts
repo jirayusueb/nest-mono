@@ -1,43 +1,40 @@
 import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
 import { make } from "../../../../shared/kernel/types/brand";
 import type { UserId } from "../../../../shared/kernel/types/ids";
-import { ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
-import type { ResolvedSession } from "../dtos/resolved-session";
+import type {
+  GetSessionInput,
+  ResolvedSessionOutput,
+} from "../dtos/auth-dtos";
+import { roleForEmail } from "../../domain/rules/role-rules";
 import type { IIdentityRepository } from "../ports/i-identity-repository";
 import type { ISessionRepository } from "../ports/i-session-repository";
 import type { ISessionTokenService } from "../ports/i-session-token-service";
 
-/**
- * Expired, unknown, or user-less sessions all resolve to `null`, never an
- * error.
- */
-export class GetSession {
+export class GetSessionUseCase {
   constructor(
     private readonly sessions: ISessionRepository,
     private readonly tokens: ISessionTokenService,
     private readonly identities: IIdentityRepository,
     private readonly dateProvider: IDateProvider,
+    private readonly adminEmails: ReadonlySet<string>,
   ) {}
 
-  async execute(input: {
-    token: string;
-  }): Promise<Result<ResolvedSession | null, never>> {
+  async execute(input: GetSessionInput): Promise<ResolvedSessionOutput | null> {
     const session = await this.sessions.findByTokenHash(
       await this.tokens.hash(input.token),
     );
 
     if (session === null || session.isExpired(this.dateProvider.now())) {
-      return ok(null);
+      return null;
     }
 
     const identity = await this.identities.findById(session.userId);
 
     if (identity === null) {
-      return ok(null);
+      return null;
     }
 
-    return ok({
+    return {
       session: {
         id: session.id,
         userId: session.userId,
@@ -53,7 +50,8 @@ export class GetSession {
         emailVerified: identity.emailVerified,
         image: identity.image,
         name: identity.name,
+        role: roleForEmail(identity.email, this.adminEmails),
       },
-    });
+    };
   }
 }

@@ -1,19 +1,17 @@
 import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
 import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
+import { err } from "../../../../shared/kernel/types/result";
 import type { Result } from "../../../../shared/kernel/types/result";
-import { Email } from "../../../../shared/kernel/values/email";
-import type { IssuedSessionDto } from "../dtos/issued-session-dto";
-import type { SignInInput } from "../dtos/sign-in-input";
+import { EmailVO } from "../../../../shared/kernel/values/email-vo";
+import type { IssuedSessionOutput, SignInInput } from "../dtos/auth-dtos";
 import type { IIdentityRepository } from "../ports/i-identity-repository";
 import type { IPasswordHasher } from "../ports/i-password-hasher";
 import type { SessionIssuer } from "../services/session-issuer";
 
-/** Enumeration-safe: every failure path answers the same Unauthorized. */
 const INVALID_CREDENTIALS = () =>
   AppError.unauthorized("Invalid email or password");
 
-export class SignIn {
+export class SignInUseCase {
   constructor(
     private readonly identities: IIdentityRepository,
     private readonly hasher: IPasswordHasher,
@@ -23,8 +21,8 @@ export class SignIn {
 
   async execute(
     input: SignInInput,
-  ): Promise<Result<IssuedSessionDto, AppError>> {
-    const email = Email.create(input.email);
+  ): Promise<Result<IssuedSessionOutput, AppError>> {
+    const email = EmailVO.create(input.email);
 
     if (email.isErr()) {
       return err(INVALID_CREDENTIALS());
@@ -45,8 +43,6 @@ export class SignIn {
       return err(INVALID_CREDENTIALS());
     }
 
-    return ok(
-      await this.sessionIssuer.issue(identity, input, this.dateProvider.now()),
-    );
+    return this.sessionIssuer.issue(identity, input, this.dateProvider.now());
   }
 }

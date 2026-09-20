@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vp run -r dev",
     "check-types": "vp run -r check-types",
-    "test": "bun test apps packages",
+    "test": "vp test run --dir packages/api",
     "db:generate": "vp run -r db:generate",
     "db:up": "alchemy deploy packages/infra/src/alchemy.run.ts",
     "destroy": "alchemy destroy packages/infra/src/alchemy.run.ts",
@@ -26,6 +26,7 @@
     "@oxlint/plugins": "1.83.0",
     "alchemy": "2.0.0-beta.79",
     "effect": "4.0.0-rc.115",
+    "oxlint": "1.83.0",
     "oxlint-plugin-comment-reflow": "^0.2.1",
     "typescript": "^5.9.2",
     "vite-plus": "^0.3.3"

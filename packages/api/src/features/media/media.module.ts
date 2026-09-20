@@ -1,19 +1,13 @@
 import { Module } from "@nestjs/common";
-import type { IDateProvider } from "../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
-import {
-  BUCKET_STORE,
-  DATE_PROVIDER,
-  ID_GENERATOR,
-  MEDIA_REPOSITORY,
-} from "../../shared/tokens";
-import { ConfirmMedia } from "./application/usecases/confirm-media";
-import { CreateUploadTarget } from "./application/usecases/create-upload-target";
-import { DeleteMedia } from "./application/usecases/delete-media";
-import { ListMedia } from "./application/usecases/list-media";
-import type { IBucketStore } from "./application/ports/i-bucket-store";
-import type { IMediaRepository } from "./application/ports/i-media-repository";
-import { RustFsBucketStore } from "./infrastructure/bucket-store";
+import { DATE_PROVIDER, type IDateProvider } from "../../shared/application/interfaces/i-date-provider";
+import { ID_GENERATOR, type IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
+import { ConfirmMediaUseCase } from "./application/usecases/confirm-media";
+import { CreateUploadTargetUseCase } from "./application/usecases/create-upload-target";
+import { DeleteMediaUseCase } from "./application/usecases/delete-media";
+import { ListMediaUseCase } from "./application/usecases/list-media";
+import { BUCKET_STORE, type IBucketStore } from "./application/ports/i-bucket-store";
+import { MEDIA_REPOSITORY, type IMediaRepository } from "./application/ports/i-media-repository";
+import { RustFsBucketStore } from "./infrastructure/stores/rust-fs-bucket-store";
 import { DrizzleMediaRepository } from "./infrastructure/repositories/drizzle-media-repository";
 import { MediaController } from "./presentation/http/media.controller";
 
@@ -23,31 +17,31 @@ import { MediaController } from "./presentation/http/media.controller";
     { provide: BUCKET_STORE, useClass: RustFsBucketStore },
     { provide: MEDIA_REPOSITORY, useClass: DrizzleMediaRepository },
     {
-      provide: CreateUploadTarget,
+      provide: CreateUploadTargetUseCase,
       useFactory: (
         repo: IMediaRepository,
         store: IBucketStore,
         ids: IIdGenerator,
         dates: IDateProvider,
-      ) => new CreateUploadTarget(repo, store, ids, dates),
+      ) => new CreateUploadTargetUseCase(repo, store, ids, dates),
       inject: [MEDIA_REPOSITORY, BUCKET_STORE, ID_GENERATOR, DATE_PROVIDER],
     },
     {
-      provide: ConfirmMedia,
+      provide: ConfirmMediaUseCase,
       useFactory: (repo: IMediaRepository, store: IBucketStore) =>
-        new ConfirmMedia(repo, store),
+        new ConfirmMediaUseCase(repo, store),
       inject: [MEDIA_REPOSITORY, BUCKET_STORE],
     },
     {
-      provide: ListMedia,
+      provide: ListMediaUseCase,
       useFactory: (repo: IMediaRepository, store: IBucketStore) =>
-        new ListMedia(repo, store),
+        new ListMediaUseCase(repo, store),
       inject: [MEDIA_REPOSITORY, BUCKET_STORE],
     },
     {
-      provide: DeleteMedia,
+      provide: DeleteMediaUseCase,
       useFactory: (repo: IMediaRepository, store: IBucketStore) =>
-        new DeleteMedia(repo, store),
+        new DeleteMediaUseCase(repo, store),
       inject: [MEDIA_REPOSITORY, BUCKET_STORE],
     },
   ],

@@ -10,29 +10,30 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import {
+  SESSION_COOKIE_SECURE,
   SESSION_COOKIE,
   clearSessionCookieOptions,
   readSessionToken,
   sessionCookieOptions,
 } from "../../../../shared/presentation/http/cookie";
-import { GetSession } from "../../application/usecases/get-session";
-import { SignIn } from "../../application/usecases/sign-in";
-import { SignOut } from "../../application/usecases/sign-out";
-import { SignUp } from "../../application/usecases/sign-up";
-import {
-  toGetSessionResponse,
-  toUserResponse,
-  type GetSessionResponse,
-  type UserResponse,
+import type {
+  AuthSessionResponse,
+  GetSessionResponse,
+  SignOutResponse,
 } from "./dtos/auth-response";
+import { GetSessionUseCase } from "../../application/usecases/get-session";
+import { SignInUseCase } from "../../application/usecases/sign-in";
+import { SignOutUseCase } from "../../application/usecases/sign-out";
+import { SignUpUseCase } from "../../application/usecases/sign-up";
+import { AuthMappers } from "./mappers/auth-mappers";
 import { signInSchema, signUpSchema } from "./dtos/auth-schemas";
-import type { SignInBody, SignUpBody } from "./dtos/auth-schemas";
+import type { SignInRequest, SignUpRequest } from "./dtos/auth-schemas";
 
 function clientMeta(req: FastifyRequest) {
-  // SAFETY: user-agent is string|string[]|undefined; single string per HTTP/1.1
-  // spec here.
   return {
     ipAddress: req.ip ?? null,
+    // SAFETY: fastify types header values as string|string[]|undefined, but
+    // user-agent is set by clients as a single scalar.
     userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
   };
 }
@@ -40,66 +41,79 @@ function clientMeta(req: FastifyRequest) {
 @Controller("api/auth")
 export class AuthController {
   constructor(
-    @Inject(SignUp) private readonly signUp: SignUp,
-    @Inject(SignIn) private readonly signIn: SignIn,
-    @Inject(SignOut) private readonly signOut: SignOut,
-    @Inject(GetSession) private readonly getSession: GetSession,
+    @Inject(SignUpUseCase) private readonly signUp: SignUpUseCase,
+    @Inject(SignInUseCase) private readonly signIn: SignInUseCase,
+    @Inject(SignOutUseCase) private readonly signOut: SignOutUseCase,
+    @Inject(GetSessionUseCase) private readonly getSession: GetSessionUseCase,
+    @Inject(SESSION_COOKIE_SECURE) private readonly cookieSecure: boolean,
   ) {}
 
   @Post("sign-up/email")
   @HttpCode(201)
   async signUpEmail(
-    @Body({ schema: signUpSchema }) input: SignUpBody,
+    @Body({ schema: signUpSchema }) input: SignUpRequest,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<{ user: UserResponse; token: string }> {
-    const result = await this.signUp.execute({ ...input, ...clientMeta(req) });
+  ): Promise<AuthSessionResponse> {
+    const result = await this.signUp.execute(
+      AuthMappers.toSignUpInput(input, clientMeta(req)),
+    );
 
     if (result.isErr()) {
       throw result.error;
     }
 
     const { user, token, expiresAt } = result.value;
-    reply.cookie(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    reply.cookie(
+      SESSION_COOKIE,
+      token,
+      sessionCookieOptions(expiresAt, this.cookieSecure),
+    );
 
-    return { user: toUserResponse(user), token };
+    return { user: AuthMappers.toSessionUserResponse(user), token };
   }
 
   @Post("sign-in/email")
   @HttpCode(200)
   async signInEmail(
-    @Body({ schema: signInSchema }) input: SignInBody,
+    @Body({ schema: signInSchema }) input: SignInRequest,
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<{ user: UserResponse; token: string }> {
-    const result = await this.signIn.execute({ ...input, ...clientMeta(req) });
+  ): Promise<AuthSessionResponse> {
+    const result = await this.signIn.execute(
+      AuthMappers.toSignInInput(input, clientMeta(req)),
+    );
 
     if (result.isErr()) {
       throw result.error;
     }
 
     const { user, token, expiresAt } = result.value;
-    reply.cookie(SESSION_COOKIE, token, sessionCookieOptions(expiresAt));
+    reply.cookie(
+      SESSION_COOKIE,
+      token,
+      sessionCookieOptions(expiresAt, this.cookieSecure),
+    );
 
-    return { user: toUserResponse(user), token };
+    return { user: AuthMappers.toSessionUserResponse(user), token };
   }
 
   @Post("sign-out")
   async signOutRoute(
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<{ success: boolean }> {
+  ): Promise<SignOutResponse> {
     const token = req.cookies[SESSION_COOKIE] ?? null;
 
     if (token) {
-      const result = await this.signOut.execute({ token });
-
-      if (result.isErr()) {
-        throw result.error;
-      }
+      await this.signOut.execute({ token });
     }
 
-    reply.cookie(SESSION_COOKIE, "", clearSessionCookieOptions());
+    reply.cookie(
+      SESSION_COOKIE,
+      "",
+      clearSessionCookieOptions(this.cookieSecure),
+    );
 
     return { success: true };
   }
@@ -118,12 +132,8 @@ export class AuthController {
       return null;
     }
 
-    const result = await this.getSession.execute({ token });
+    const resolved = await this.getSession.execute({ token });
 
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    return result.value ? toGetSessionResponse(result.value) : null;
+    return resolved ? AuthMappers.toGetSessionResponse(resolved) : null;
   }
 }

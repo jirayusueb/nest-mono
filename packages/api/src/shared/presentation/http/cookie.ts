@@ -1,5 +1,6 @@
-/** Cookie name mirrors better-auth's default session cookie. */
 export const SESSION_COOKIE = "better-auth.session_token";
+
+export const SESSION_COOKIE_SECURE = "SESSION_COOKIE_SECURE";
 
 export interface SessionCookieOptions {
   httpOnly: boolean;
@@ -27,18 +28,23 @@ export function readSessionToken(headers: Headers): string | null {
   return null;
 }
 
-export function sessionCookieOptions(expiresAt: Date): SessionCookieOptions {
+export function sessionCookieOptions(
+  expiresAt: Date,
+  secure: boolean,
+): SessionCookieOptions {
   return {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     expires: expiresAt,
   };
 }
 
-export function clearSessionCookieOptions(): SessionCookieOptions & {
+export function clearSessionCookieOptions(
+  secure: boolean,
+): SessionCookieOptions & {
   maxAge: number;
 } {
-  return { ...sessionCookieOptions(new Date(0)), maxAge: 0 };
+  return { ...sessionCookieOptions(new Date(0), secure), maxAge: 0 };
 }

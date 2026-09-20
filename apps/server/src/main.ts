@@ -1,15 +1,19 @@
 import "reflect-metadata";
 import "zod/compile";
-import { createApp, ensureBucket, runMigrations } from "@nest-mono/api";
-import { loadEnv } from "./env";
+import {
+  createApp,
+  ensureBucket,
+  loadEnv,
+  runMigrations,
+} from "@nest-mono/api";
 
 const env = loadEnv();
 
-await runMigrations();
+await runMigrations(env.DATABASE_URL);
 
-await ensureBucket();
+await ensureBucket(env);
 
-const app = await createApp({ webOrigin: env.WEB_ORIGIN });
+const app = await createApp({ env });
 
 await app.listen({ port: env.PORT, host: "0.0.0.0" });
 

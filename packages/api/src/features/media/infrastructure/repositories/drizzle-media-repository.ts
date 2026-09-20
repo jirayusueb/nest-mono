@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { media } from "../../../../db/schema/media";
 import type { UserId } from "../../../../shared/kernel/types/ids";
-import type { Database } from "../../../../shared/infrastructure/database/database";
-import { DATABASE } from "../../../../shared/tokens";
+import { DATABASE, type Database } from "../../../../shared/infrastructure/database/database";
+import { activeDb } from "../../../../shared/infrastructure/database/tx-storage";
 import type { MediaRecord } from "../../application/dtos/media-dtos";
 import type { IMediaRepository } from "../../application/ports/i-media-repository";
 import { MediaMapper } from "../mappers/media-mapper";
@@ -12,8 +12,12 @@ import { MediaMapper } from "../mappers/media-mapper";
 export class DrizzleMediaRepository implements IMediaRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
+  private get dbOrTx(): Database {
+    return activeDb(this.db);
+  }
+
   async save(record: MediaRecord): Promise<void> {
-    await this.db
+    await this.dbOrTx
       .insert(media)
       .values(record)
       .onConflictDoUpdate({
@@ -27,7 +31,7 @@ export class DrizzleMediaRepository implements IMediaRepository {
   }
 
   async findByKey(key: string): Promise<MediaRecord | null> {
-    const rows = await this.db
+    const rows = await this.dbOrTx
       .select()
       .from(media)
       .where(eq(media.key, key))
@@ -36,11 +40,11 @@ export class DrizzleMediaRepository implements IMediaRepository {
     return rows[0] ? MediaMapper.toRecord(rows[0]) : null;
   }
 
-  async listByUser(userId: UserId): Promise<MediaRecord[]> {
-    const rows = await this.db
+  async listConfirmedByUser(userId: UserId): Promise<MediaRecord[]> {
+    const rows = await this.dbOrTx
       .select()
       .from(media)
-      .where(eq(media.userId, userId))
+      .where(and(eq(media.userId, userId), eq(media.confirmed, true)))
       .orderBy(desc(media.createdAt));
 
     return rows.map((row) => MediaMapper.toRecord(row));
@@ -51,13 +55,13 @@ export class DrizzleMediaRepository implements IMediaRepository {
     bytes: number,
     contentType: string,
   ): Promise<void> {
-    await this.db
+    await this.dbOrTx
       .update(media)
       .set({ bytes, contentType, confirmed: true })
       .where(eq(media.key, key));
   }
 
   async deleteByKey(key: string): Promise<void> {
-    await this.db.delete(media).where(eq(media.key, key));
+    await this.dbOrTx.delete(media).where(eq(media.key, key));
   }
 }

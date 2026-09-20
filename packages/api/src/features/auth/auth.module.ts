@@ -1,35 +1,41 @@
 import { Module } from "@nestjs/common";
-import type { IDateProvider } from "../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
-import {
-  DATE_PROVIDER,
-  ID_GENERATOR,
-  IDENTITY_REPOSITORY,
-  PASSWORD_HASHER,
-  SESSION_REPOSITORY,
-  SESSION_TOKEN_SERVICE,
-} from "../../shared/tokens";
-import { GetSession } from "./application/usecases/get-session";
-import { SignIn } from "./application/usecases/sign-in";
-import { SignOut } from "./application/usecases/sign-out";
-import { SignUp } from "./application/usecases/sign-up";
-import type { IIdentityRepository } from "./application/ports/i-identity-repository";
-import type { IPasswordHasher } from "./application/ports/i-password-hasher";
-import type { ISessionRepository } from "./application/ports/i-session-repository";
-import type { ISessionTokenService } from "./application/ports/i-session-token-service";
+import { DATE_PROVIDER, type IDateProvider } from "../../shared/application/interfaces/i-date-provider";
+import { UNIT_OF_WORK, type IUnitOfWork } from "../../shared/application/interfaces/i-unit-of-work";
+import { ID_GENERATOR, type IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
+import { SESSION_RESOLVER } from "../../shared/application/interfaces/i-session-resolver";
+import { ADMIN_EMAILS } from "../../shared/infrastructure/config/admin-emails";
+import { DATABASE, type Database } from "../../shared/infrastructure/database/database";
+import { CONFIG, type Env } from "../../shared/infrastructure/config/env";
+import { SESSION_COOKIE_SECURE } from "../../shared/presentation/http/cookie";
+import { GetSessionUseCase } from "./application/usecases/get-session";
+import { SignInUseCase } from "./application/usecases/sign-in";
+import { SignOutUseCase } from "./application/usecases/sign-out";
+import { SignUpUseCase } from "./application/usecases/sign-up";
+import { IDENTITY_REPOSITORY, type IIdentityRepository } from "./application/ports/i-identity-repository";
+import { PASSWORD_HASHER, type IPasswordHasher } from "./application/ports/i-password-hasher";
+import { SESSION_REPOSITORY, type ISessionRepository } from "./application/ports/i-session-repository";
+import { SESSION_TOKEN_SERVICE, type ISessionTokenService } from "./application/ports/i-session-token-service";
 import { SessionIssuer } from "./application/services/session-issuer";
-import { DrizzleIdentityRepository } from "./infrastructure/repositories/drizzle-identity-repository";
+import { IdentityRepositoryAdapter } from "./identity-repository.adapter";
 import { DrizzleSessionRepository } from "./infrastructure/repositories/drizzle-session-repository";
 import { ScryptPasswordHasher } from "./infrastructure/services/scrypt-password-hasher";
 import { WebCryptoSessionTokenService } from "./infrastructure/services/webcrypto-session-token-service";
 import { AuthController } from "./presentation/http/auth.controller";
-import { SessionResolver } from "./presentation/session-resolver";
+import { SessionResolver } from "./application/services/session-resolver";
+import { USER_REPOSITORY, type IUserRepository } from "../user/application/ports/i-user-repository";
+import { UserModule } from "../user/user.module";
 
 @Module({
+  imports: [UserModule],
   controllers: [AuthController],
-  exports: [SessionResolver],
+  exports: [SESSION_RESOLVER],
   providers: [
-    { provide: IDENTITY_REPOSITORY, useClass: DrizzleIdentityRepository },
+    {
+      provide: IDENTITY_REPOSITORY,
+      useFactory: (users: IUserRepository, db: Database) =>
+        new IdentityRepositoryAdapter(users, db),
+      inject: [USER_REPOSITORY, DATABASE],
+    },
     { provide: SESSION_REPOSITORY, useClass: DrizzleSessionRepository },
     { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
     { provide: SESSION_TOKEN_SERVICE, useClass: WebCryptoSessionTokenService },
@@ -40,39 +46,43 @@ import { SessionResolver } from "./presentation/session-resolver";
         tokens: ISessionTokenService,
         ids: IIdGenerator,
         dates: IDateProvider,
-      ) => new SessionIssuer(sessions, tokens, ids, dates),
+        adminEmails: ReadonlySet<string>,
+      ) => new SessionIssuer(sessions, tokens, ids, dates, adminEmails),
       inject: [
         SESSION_REPOSITORY,
         SESSION_TOKEN_SERVICE,
         ID_GENERATOR,
         DATE_PROVIDER,
+        ADMIN_EMAILS,
       ],
     },
     {
-      provide: SignUp,
+      provide: SignUpUseCase,
       useFactory: (
         identities: IIdentityRepository,
         hasher: IPasswordHasher,
         issuer: SessionIssuer,
         ids: IIdGenerator,
         dates: IDateProvider,
-      ) => new SignUp(identities, hasher, issuer, ids, dates),
+        uow: IUnitOfWork,
+      ) => new SignUpUseCase(identities, hasher, issuer, ids, dates, uow),
       inject: [
         IDENTITY_REPOSITORY,
         PASSWORD_HASHER,
         SessionIssuer,
         ID_GENERATOR,
         DATE_PROVIDER,
+        UNIT_OF_WORK,
       ],
     },
     {
-      provide: SignIn,
+      provide: SignInUseCase,
       useFactory: (
         identities: IIdentityRepository,
         hasher: IPasswordHasher,
         issuer: SessionIssuer,
         dates: IDateProvider,
-      ) => new SignIn(identities, hasher, issuer, dates),
+      ) => new SignInUseCase(identities, hasher, issuer, dates),
       inject: [
         IDENTITY_REPOSITORY,
         PASSWORD_HASHER,
@@ -81,29 +91,42 @@ import { SessionResolver } from "./presentation/session-resolver";
       ],
     },
     {
-      provide: SignOut,
+      provide: SignOutUseCase,
       useFactory: (
         sessions: ISessionRepository,
         tokens: ISessionTokenService,
-      ) => new SignOut(sessions, tokens),
+      ) => new SignOutUseCase(sessions, tokens),
       inject: [SESSION_REPOSITORY, SESSION_TOKEN_SERVICE],
     },
     {
-      provide: GetSession,
+      provide: GetSessionUseCase,
       useFactory: (
         sessions: ISessionRepository,
         tokens: ISessionTokenService,
         identities: IIdentityRepository,
         dates: IDateProvider,
-      ) => new GetSession(sessions, tokens, identities, dates),
+        adminEmails: ReadonlySet<string>,
+      ) =>
+        new GetSessionUseCase(sessions, tokens, identities, dates, adminEmails),
       inject: [
         SESSION_REPOSITORY,
         SESSION_TOKEN_SERVICE,
         IDENTITY_REPOSITORY,
         DATE_PROVIDER,
+        ADMIN_EMAILS,
       ],
     },
-    SessionResolver,
+    {
+      provide: SESSION_RESOLVER,
+      useFactory: (getSession: GetSessionUseCase) =>
+        new SessionResolver(getSession),
+      inject: [GetSessionUseCase],
+    },
+    {
+      provide: SESSION_COOKIE_SECURE,
+      useFactory: (env: Env) => env.NODE_ENV === "production",
+      inject: [CONFIG],
+    },
   ],
 })
 export class AuthModule {}

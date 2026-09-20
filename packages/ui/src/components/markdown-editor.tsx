@@ -10,13 +10,8 @@ import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { useRef } from "react";
 
 export interface MarkdownEditorProps {
-  /** Initial markdown; re-mount (key) to load different content. */
   value: string;
   onChange: (markdown: string) => void;
-  /**
-   * Uploads a file and returns its public URL — the presigned-PUT flow lives in
-   * the caller.
-   */
   uploadImage?: (file: File) => Promise<string>;
 }
 

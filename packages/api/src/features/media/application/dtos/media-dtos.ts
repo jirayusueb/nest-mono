@@ -6,7 +6,6 @@ export interface MediaRecord {
   key: string;
   contentType: string;
   bytes: number;
-  /** Flips once the browser's direct PUT is verified via a HEAD. */
   confirmed: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -18,16 +17,38 @@ export interface CreateUploadTargetInput {
   bytes: number;
 }
 
-export interface UploadTargetDto {
+export interface UploadTargetOutput {
   key: string;
   uploadUrl: string;
   url: string;
 }
 
-export interface MediaDto {
+export interface MediaOutput {
   key: string;
   url: string;
   contentType: string;
   bytes: number;
   createdAt: Date;
+}
+
+export interface ConfirmMediaInput {
+  userId: UserId;
+  key: string;
+}
+
+export interface ConfirmMediaOutput {
+  url: string;
+}
+
+export interface DeleteMediaInput {
+  userId: UserId;
+  key: string;
+}
+
+export interface ListMediaInput {
+  userId: UserId;
+}
+
+export interface ListMediaOutput {
+  media: MediaOutput[];
 }

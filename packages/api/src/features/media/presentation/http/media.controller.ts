@@ -12,44 +12,46 @@ import {
 import type { SessionUser } from "../../../../shared/kernel/types/session-user";
 import { CurrentUser } from "../../../../shared/presentation/http/current-user.decorator";
 import { SessionGuard } from "../../../../shared/presentation/http/session.guard";
-import { ConfirmMedia } from "../../application/usecases/confirm-media";
-import { CreateUploadTarget } from "../../application/usecases/create-upload-target";
-import { DeleteMedia } from "../../application/usecases/delete-media";
-import { ListMedia } from "../../application/usecases/list-media";
+import { ConfirmMediaUseCase } from "../../application/usecases/confirm-media";
+import { CreateUploadTargetUseCase } from "../../application/usecases/create-upload-target";
+import { DeleteMediaUseCase } from "../../application/usecases/delete-media";
+import { ListMediaUseCase } from "../../application/usecases/list-media";
 import type {
-  MediaItemResponse,
+  ConfirmMediaResponse,
+  MediaListResponse,
   UploadTargetResponse,
 } from "./dtos/media-response";
-import { toMediaItemResponse } from "./dtos/media-response";
 import {
   confirmMediaSchema,
+  mediaKeyParamSchema,
   uploadTargetSchema,
-  type ConfirmMediaBody,
-  type UploadTargetBody,
+  type ConfirmMediaRequest,
+  type UploadTargetRequest,
 } from "./dtos/media-schemas";
+import { MediaMappers } from "./mappers/media-mappers";
 
 @Controller("api/media")
 @UseGuards(SessionGuard)
 export class MediaController {
   constructor(
-    @Inject(CreateUploadTarget)
-    private readonly createUploadTarget: CreateUploadTarget,
-    @Inject(ConfirmMedia) private readonly confirmMedia: ConfirmMedia,
-    @Inject(ListMedia) private readonly listMedia: ListMedia,
-    @Inject(DeleteMedia) private readonly deleteMedia: DeleteMedia,
+    @Inject(CreateUploadTargetUseCase)
+    private readonly createUploadTarget: CreateUploadTargetUseCase,
+    @Inject(ConfirmMediaUseCase)
+    private readonly confirmMedia: ConfirmMediaUseCase,
+    @Inject(ListMediaUseCase) private readonly listMedia: ListMediaUseCase,
+    @Inject(DeleteMediaUseCase)
+    private readonly deleteMedia: DeleteMediaUseCase,
   ) {}
 
-  /** Presigned PUT target; the browser uploads directly to RustFS. */
   @Post("target")
   @HttpCode(201)
   async createTarget(
-    @Body({ schema: uploadTargetSchema }) body: UploadTargetBody,
+    @Body({ schema: uploadTargetSchema }) body: UploadTargetRequest,
     @CurrentUser() identity: SessionUser,
   ): Promise<UploadTargetResponse> {
-    const result = await this.createUploadTarget.execute({
-      ...body,
-      userId: identity.id,
-    });
+    const result = await this.createUploadTarget.execute(
+      MediaMappers.toCreateUploadTargetInput(body, identity.id),
+    );
 
     if (result.isErr()) {
       throw result.error;
@@ -60,9 +62,12 @@ export class MediaController {
 
   @Post("confirm")
   async confirm(
-    @Body({ schema: confirmMediaSchema }) body: ConfirmMediaBody,
-  ): Promise<{ url: string }> {
-    const result = await this.confirmMedia.execute({ key: body.key });
+    @Body({ schema: confirmMediaSchema }) body: ConfirmMediaRequest,
+    @CurrentUser() identity: SessionUser,
+  ): Promise<ConfirmMediaResponse> {
+    const result = await this.confirmMedia.execute(
+      MediaMappers.toConfirmMediaInput(body, identity.id),
+    );
 
     if (result.isErr()) {
       throw result.error;
@@ -72,22 +77,21 @@ export class MediaController {
   }
 
   @Get()
-  async list(
-    @CurrentUser() identity: SessionUser,
-  ): Promise<{ media: MediaItemResponse[] }> {
-    const result = await this.listMedia.execute({ userId: identity.id });
-
-    if (result.isErr()) {
-      throw result.error;
-    }
-
-    return { media: result.value.media.map(toMediaItemResponse) };
+  async list(@CurrentUser() identity: SessionUser): Promise<MediaListResponse> {
+    return MediaMappers.toMediaListResponse(
+      await this.listMedia.execute({ userId: identity.id }),
+    );
   }
 
   @Delete(":key")
   @HttpCode(204)
-  async remove(@Param("key") key: string): Promise<void> {
-    const result = await this.deleteMedia.execute({ key });
+  async remove(
+    @Param("key", { schema: mediaKeyParamSchema }) key: string,
+    @CurrentUser() identity: SessionUser,
+  ): Promise<void> {
+    const result = await this.deleteMedia.execute(
+      MediaMappers.toDeleteMediaInput(key, identity.id),
+    );
 
     if (result.isErr()) {
       throw result.error;

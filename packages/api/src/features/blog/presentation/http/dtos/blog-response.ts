@@ -1,5 +1,3 @@
-import type { PostDto } from "../../../application/dtos/blog-dtos";
-
 export interface PostResponse {
   id: string;
   slug: string;
@@ -17,17 +15,6 @@ export interface CategoryResponse {
   slug: string;
 }
 
-/** Date → ISO at the wire. */
-export function toPostResponse(dto: PostDto): PostResponse {
-  return {
-    id: dto.id,
-    slug: dto.slug,
-    title: dto.title,
-    content: dto.content,
-    category: dto.category,
-    tags: dto.tags,
-    thumbnailUrl: dto.thumbnailUrl,
-    createdAt: dto.createdAt.toISOString(),
-    updatedAt: dto.updatedAt.toISOString(),
-  };
+export interface CategoryListResponse {
+  categories: CategoryResponse[];
 }

@@ -2,15 +2,17 @@ import { Controller, Get, Inject, UseGuards } from "@nestjs/common";
 import type { SessionUser } from "../../../../shared/kernel/types/session-user";
 import { CurrentUser } from "../../../../shared/presentation/http/current-user.decorator";
 import { SessionGuard } from "../../../../shared/presentation/http/session.guard";
-import { GetUser } from "../../application/usecases/get-user";
-import { toUserResponse, type UserResponse } from "./dtos/user-response";
+import { GetUserUseCase } from "../../application/usecases/get-user";
+import type { UserResponse } from "./dtos/user-response";
+import { UserMappers } from "./mappers/user-mappers";
 
 @Controller("api/user")
 @UseGuards(SessionGuard)
 export class UserController {
-  constructor(@Inject(GetUser) private readonly getUser: GetUser) {}
+  constructor(
+    @Inject(GetUserUseCase) private readonly getUser: GetUserUseCase,
+  ) {}
 
-  /** The guard resolved the identity; the use case reads the full record. */
   @Get("me")
   async me(@CurrentUser() identity: SessionUser): Promise<UserResponse> {
     const result = await this.getUser.execute({ userId: identity.id });
@@ -19,6 +21,6 @@ export class UserController {
       throw result.error;
     }
 
-    return toUserResponse(result.value);
+    return UserMappers.toUserResponse(result.value);
   }
 }

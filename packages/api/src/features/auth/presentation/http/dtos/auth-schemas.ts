@@ -1,13 +1,19 @@
 import { z } from "zod";
 import {
-  MAX_PASSWORD_LENGTH,
-  MIN_PASSWORD_LENGTH,
-} from "../../../domain/values/plain-password";
+  MAX_NAME_LENGTH,
+  MIN_NAME_LENGTH,
+} from "../../../domain/rules/name-rules";
+import { PasswordRules } from "../../../domain/rules/password-rules";
 
 export const signUpSchema = z.object({
   email: z.email(),
-  password: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
-  name: z.string().min(1).max(100),
+  password: z
+    .string()
+    .min(PasswordRules.MIN_LENGTH)
+    .max(PasswordRules.MAX_LENGTH)
+    .regex(/[A-Z]/u, "Password must contain an uppercase letter")
+    .regex(/\d/u, "Password must contain a number"),
+  name: z.string().min(MIN_NAME_LENGTH).max(MAX_NAME_LENGTH),
 });
 
 export const signInSchema = z.object({
@@ -15,6 +21,6 @@ export const signInSchema = z.object({
   password: z.string(),
 });
 
-export type SignUpBody = z.infer<typeof signUpSchema>;
+export type SignUpRequest = z.infer<typeof signUpSchema>;
 
-export type SignInBody = z.infer<typeof signInSchema>;
+export type SignInRequest = z.infer<typeof signInSchema>;

@@ -1,28 +1,35 @@
+import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
 import type { IDateProvider } from "../interfaces/i-date-provider";
 import type { IIdGenerator } from "../interfaces/i-id-generator";
+import type { IUnitOfWork } from "../interfaces/i-unit-of-work";
 
-export class MockDateProvider implements IDateProvider {
-  constructor(private readonly current: Date) {}
+export function mockDateProvider(current: Date): DeepMocked<IDateProvider> {
+  const addSeconds = (seconds: number, from?: Date): Date =>
+    new Date((from ?? current).getTime() + seconds * 1000);
 
-  now(): Date {
-    return this.current;
-  }
-
-  addSeconds(seconds: number, from?: Date): Date {
-    return new Date((from ?? this.current).getTime() + seconds * 1000);
-  }
-
-  addMinutes(minutes: number, from?: Date): Date {
-    return this.addSeconds(minutes * 60, from);
-  }
+  return createMock<IDateProvider>({
+    now: () => current,
+    addSeconds,
+    addMinutes: (minutes, from) => addSeconds(minutes * 60, from),
+  });
 }
 
-export class MockIdGenerator implements IIdGenerator {
-  private counter = 0;
+export function mockIdGenerator(): DeepMocked<IIdGenerator> {
+  let counter = 0;
 
-  generate(): string {
-    this.counter += 1;
+  return createMock<IIdGenerator>({
+    generate: () => {
+      counter += 1;
 
-    return `id-${this.counter}`;
-  }
+      return `id-${counter}`;
+    },
+  });
+}
+
+export function mockUnitOfWork(): DeepMocked<IUnitOfWork> {
+  const uow = createMock<IUnitOfWork>();
+
+  uow.runInTransaction.mockImplementation((work) => work());
+
+  return uow;
 }

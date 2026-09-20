@@ -15,6 +15,13 @@
       "when": 1789758456356,
       "tag": "0001_tiny_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789825079673,
+      "tag": "0002_lyrical_hannibal_king",
+      "breakpoints": true
     }
   ]
 }
