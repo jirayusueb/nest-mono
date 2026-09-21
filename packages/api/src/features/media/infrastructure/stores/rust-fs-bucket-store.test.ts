@@ -1,5 +1,7 @@
-import { describe, expect, test } from "vitest";
-import type { Env } from "../../../../shared/infrastructure/config/env";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { Env } from "~/shared/infrastructure/config/env";
+
 import { RustFsBucketStore } from "./rust-fs-bucket-store";
 
 const env = {
@@ -15,8 +17,12 @@ const env = {
   ADMIN_EMAILS: "",
 } satisfies Env;
 
-describe("RustFsBucketStore", () => {
-  test("presignPut returns a signed PUT URL for the object key", async () => {
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("rust fs bucket store", () => {
+  it("presignPut returns a signed PUT URL for the object key", async () => {
     const store = new RustFsBucketStore(env);
 
     const url = new URL(
@@ -25,23 +31,44 @@ describe("RustFsBucketStore", () => {
 
     expect(url.origin).toBe("http://localhost:9000");
     expect(url.pathname).toBe("/media/dir/my%20file.png");
-    expect(url.searchParams.get("X-Amz-Algorithm")).toBe(
-      "AWS4-HMAC-SHA256",
-    );
+    expect(url.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
     expect(url.searchParams.get("X-Amz-Expires")).toBe("300");
     expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
     expect(url.searchParams.get("X-Amz-Credential")).toContain(
       "/us-east-1/s3/aws4_request",
     );
-    expect(url.searchParams.get("X-Amz-Signature")).toMatch(
-      /^[0-9a-f]{64}$/,
-    );
+    expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  test("publicUrl joins endpoint, bucket, and key", () => {
+  it("publicUrl joins endpoint, bucket, and key", () => {
     const store = new RustFsBucketStore(env);
     expect(store.publicUrl("a/b.png")).toBe(
       "http://localhost:9000/media/a/b.png",
+    );
+  });
+
+  it("head returns null for a missing object", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
+
+    const store = new RustFsBucketStore(env);
+    expect(await store.head("missing.png")).toBeNull();
+  });
+
+  it("delete ignores a 404 and throws on other failures", async () => {
+    const store = new RustFsBucketStore(env);
+
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    await expect(store.delete("missing.png")).resolves.toBeUndefined();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 403 })),
+    );
+    await expect(store.delete("broken.png")).rejects.toThrow(
+      "S3 delete failed: 403",
     );
   });
 });

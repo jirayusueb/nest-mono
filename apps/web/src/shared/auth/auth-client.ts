@@ -8,7 +8,7 @@ interface EmailPasswordInput {
 
 export const authClient = {
   async signUpEmail(input: EmailPasswordInput): Promise<User> {
-    const body = await apiFetch<{ user: User }>("/api/auth/sign-up/email", {
+    const body = await apiFetch<{ user: User }>("/v1/auth/sign-up/email", {
       method: "POST",
       body: JSON.stringify(input),
     });
@@ -17,7 +17,7 @@ export const authClient = {
   },
 
   async signInEmail(input: EmailPasswordInput): Promise<User> {
-    const body = await apiFetch<{ user: User }>("/api/auth/sign-in/email", {
+    const body = await apiFetch<{ user: User }>("/v1/auth/sign-in/email", {
       method: "POST",
       body: JSON.stringify(input),
     });
@@ -26,12 +26,12 @@ export const authClient = {
   },
 
   async signOut(): Promise<void> {
-    await apiFetch("/api/auth/sign-out", { method: "POST" });
+    await apiFetch("/v1/auth/sign-out", { method: "POST" });
   },
 
   async getSession(init: RequestInit = {}): Promise<User | null> {
     const body = await apiFetch<{ user: User } | null>(
-      "/api/auth/get-session",
+      "/v1/auth/get-session",
       init,
     );
 

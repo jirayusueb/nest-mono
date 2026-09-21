@@ -6,6 +6,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
 import { user } from "./auth";
 
 const createdAt = () =>
@@ -45,8 +46,6 @@ export const post = pgTable(
     title: text("title").notNull(),
     slug: text("slug").notNull(),
     content: text("content").notNull().default(""),
-    // ponytail: dangling URL if the media object is later deleted; switch to a
-    // mediaId FK + join if that bites.
     thumbnailUrl: text("thumbnail_url"),
     categoryId: text("category_id").references(() => category.id, {
       onDelete: "set null",
@@ -56,7 +55,6 @@ export const post = pgTable(
     deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
   },
   (table) => [
-    // A deleted post releases its slug for reuse.
     uniqueIndex("post_slug_active_key")
       .on(table.slug)
       .where(sql`${table.deletedAt} is null`),

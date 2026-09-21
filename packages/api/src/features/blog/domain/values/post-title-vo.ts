@@ -1,7 +1,7 @@
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { DomainError } from "../../../../shared/kernel/errors/domain-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { DomainError } from "~/shared/kernel/errors/domain-error";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 export const MIN_POST_TITLE_LENGTH = 1;
 

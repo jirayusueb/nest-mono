@@ -1,19 +1,19 @@
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
-import { make } from "../../../../shared/kernel/types/brand";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
-import type { AppError } from "../../../../shared/kernel/errors/app-error";
-import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import type { AuthIdentity } from "../ports/i-identity-repository";
-import type { ISessionRepository } from "../ports/i-session-repository";
-import type { ISessionTokenService } from "../ports/i-session-token-service";
-import { SessionEntity } from "../../domain/entities/session-entity";
 import type {
   ClientMeta,
   IssuedSessionOutput,
-} from "../dtos/auth-dtos";
-import { roleForEmail } from "../../domain/rules/role-rules";
+} from "~/features/auth/application/dtos/auth-dtos";
+import type { AuthIdentity } from "~/features/auth/application/ports/i-identity-repository";
+import type { ISessionRepository } from "~/features/auth/application/ports/i-session-repository";
+import type { ISessionTokenService } from "~/features/auth/application/ports/i-session-token-service";
+import { SessionEntity } from "~/features/auth/domain/entities/session-entity";
+import { roleForEmail } from "~/features/auth/domain/rules/role-rules";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import type { AppError } from "~/shared/kernel/errors/app-error";
+import { make } from "~/shared/kernel/types/brand";
+import type { SessionId, UserId } from "~/shared/kernel/types/ids";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 export class SessionIssuer {
   constructor(

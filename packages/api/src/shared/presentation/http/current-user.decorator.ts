@@ -1,5 +1,7 @@
 import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
-import type { SessionUser } from "../../kernel/types/session-user";
+
+import type { SessionUser } from "~/shared/kernel/types/session-user";
+
 import type { AuthenticatedRequest } from "./session.guard";
 
 export const CurrentUser = createParamDecorator<void>(

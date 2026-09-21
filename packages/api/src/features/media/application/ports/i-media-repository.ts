@@ -1,5 +1,5 @@
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import type { MediaRecord } from "../dtos/media-dtos";
+import type { MediaRecord } from "~/features/media/application/dtos/media-dtos";
+import type { UserId } from "~/shared/kernel/types/ids";
 
 export const MEDIA_REPOSITORY = "MEDIA_REPOSITORY";
 

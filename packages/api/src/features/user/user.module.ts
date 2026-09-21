@@ -1,7 +1,11 @@
 import { Module } from "@nestjs/common";
-import { DrizzleUserRepository } from "./infrastructure/repositories/drizzle-user-repository";
+
+import {
+  USER_REPOSITORY,
+  type IUserRepository,
+} from "./application/ports/i-user-repository";
 import { GetUserUseCase } from "./application/usecases/get-user";
-import { USER_REPOSITORY, type IUserRepository } from "./application/ports/i-user-repository";
+import { DrizzleUserRepository } from "./infrastructure/repositories/drizzle-user-repository";
 import { UserController } from "./presentation/http/user.controller";
 
 @Module({

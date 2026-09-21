@@ -3,13 +3,16 @@ import type {
   ResolvedSessionOutput,
   SignInInput,
   SignUpInput,
-} from "../../../application/dtos/auth-dtos";
-import type { SessionUser } from "../../../../../shared/kernel/types/session-user";
+} from "~/features/auth/application/dtos/auth-dtos";
 import type {
   GetSessionResponse,
   SessionUserResponse,
-} from "../dtos/auth-response";
-import type { SignInRequest, SignUpRequest } from "../dtos/auth-schemas";
+} from "~/features/auth/presentation/http/dtos/auth-response";
+import type {
+  SignInRequest,
+  SignUpRequest,
+} from "~/features/auth/presentation/http/dtos/auth-schemas";
+import type { SessionUser } from "~/shared/kernel/types/session-user";
 
 export class AuthMappers {
   static toSessionUserResponse(user: SessionUser): SessionUserResponse {

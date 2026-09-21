@@ -1,6 +1,6 @@
-import type { EmailVO } from "../../../../shared/kernel/values/email-vo";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import type { UserEntity } from "../../domain/entities/user-entity";
+import type { UserEntity } from "~/features/user/domain/entities/user-entity";
+import type { UserId } from "~/shared/kernel/types/ids";
+import type { EmailVO } from "~/shared/kernel/values/email-vo";
 
 export const USER_REPOSITORY = "USER_REPOSITORY";
 

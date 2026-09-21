@@ -1,4 +1,4 @@
-import type { SessionEntity } from "../../domain/entities/session-entity";
+import type { SessionEntity } from "~/features/auth/domain/entities/session-entity";
 
 export const SESSION_REPOSITORY = "SESSION_REPOSITORY";
 

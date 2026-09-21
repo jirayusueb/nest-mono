@@ -1,5 +1,6 @@
 import { StandardSchemaValidationPipe as NestStandardSchemaValidationPipe } from "@nestjs/common";
-import { AppError } from "../../kernel/errors/app-error";
+
+import { AppError } from "~/shared/kernel/errors/app-error";
 
 export class StandardSchemaValidationPipe extends NestStandardSchemaValidationPipe {
   constructor() {

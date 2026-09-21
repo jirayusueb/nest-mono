@@ -1,5 +1,5 @@
-import type { ListCategoriesOutput } from "../dtos/blog-dtos";
-import type { IPostRepository } from "../ports/i-post-repository";
+import type { ListCategoriesOutput } from "~/features/blog/application/dtos/blog-dtos";
+import type { IPostRepository } from "~/features/blog/application/ports/i-post-repository";
 
 export class ListCategoriesUseCase {
   constructor(private readonly repo: IPostRepository) {}

@@ -1,8 +1,4 @@
 "use client";
-// FSD deviation, deliberate: auth/session data canonically lives in shared/auth
-// (skill §6 "no user entity just for auth data"). This project mandates all six
-// FSD layer folders with legal occupants; entities/user is that occupant. If
-// the six-folder mandate is ever dropped, move this file to shared/auth/.
 
 import {
   createContext,

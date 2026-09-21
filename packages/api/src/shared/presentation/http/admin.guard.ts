@@ -3,7 +3,9 @@ import {
   type CanActivate,
   type ExecutionContext,
 } from "@nestjs/common";
-import { AppError } from "../../kernel/errors/app-error";
+
+import { AppError } from "~/shared/kernel/errors/app-error";
+
 import type { AuthenticatedRequest } from "./session.guard";
 
 @Injectable()

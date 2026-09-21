@@ -1,14 +1,28 @@
 import { Module } from "@nestjs/common";
-import { DATE_PROVIDER, type IDateProvider } from "../../shared/application/interfaces/i-date-provider";
-import { ID_GENERATOR, type IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
+
+import {
+  DATE_PROVIDER,
+  type IDateProvider,
+} from "~/shared/application/interfaces/i-date-provider";
+import {
+  ID_GENERATOR,
+  type IIdGenerator,
+} from "~/shared/application/interfaces/i-id-generator";
+
+import {
+  BUCKET_STORE,
+  type IBucketStore,
+} from "./application/ports/i-bucket-store";
+import {
+  MEDIA_REPOSITORY,
+  type IMediaRepository,
+} from "./application/ports/i-media-repository";
 import { ConfirmMediaUseCase } from "./application/usecases/confirm-media";
 import { CreateUploadTargetUseCase } from "./application/usecases/create-upload-target";
 import { DeleteMediaUseCase } from "./application/usecases/delete-media";
 import { ListMediaUseCase } from "./application/usecases/list-media";
-import { BUCKET_STORE, type IBucketStore } from "./application/ports/i-bucket-store";
-import { MEDIA_REPOSITORY, type IMediaRepository } from "./application/ports/i-media-repository";
-import { RustFsBucketStore } from "./infrastructure/stores/rust-fs-bucket-store";
 import { DrizzleMediaRepository } from "./infrastructure/repositories/drizzle-media-repository";
+import { RustFsBucketStore } from "./infrastructure/stores/rust-fs-bucket-store";
 import { MediaController } from "./presentation/http/media.controller";
 
 @Module({

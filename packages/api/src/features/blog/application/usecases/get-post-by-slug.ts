@@ -1,12 +1,12 @@
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
 import {
   toPostOutput,
   type GetPostBySlugInput,
   type PostOutput,
-} from "../dtos/blog-dtos";
-import type { IPostRepository } from "../ports/i-post-repository";
+} from "~/features/blog/application/dtos/blog-dtos";
+import type { IPostRepository } from "~/features/blog/application/ports/i-post-repository";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 export class GetPostBySlugUseCase {
   constructor(private readonly repo: IPostRepository) {}

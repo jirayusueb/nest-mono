@@ -1,29 +1,55 @@
 import { Module } from "@nestjs/common";
-import { DATE_PROVIDER, type IDateProvider } from "../../shared/application/interfaces/i-date-provider";
-import { UNIT_OF_WORK, type IUnitOfWork } from "../../shared/application/interfaces/i-unit-of-work";
-import { ID_GENERATOR, type IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
-import { SESSION_RESOLVER } from "../../shared/application/interfaces/i-session-resolver";
-import { ADMIN_EMAILS } from "../../shared/infrastructure/config/admin-emails";
-import { DATABASE, type Database } from "../../shared/infrastructure/database/database";
-import { CONFIG, type Env } from "../../shared/infrastructure/config/env";
-import { SESSION_COOKIE_SECURE } from "../../shared/presentation/http/cookie";
+
+import {
+  USER_REPOSITORY,
+  type IUserRepository,
+} from "~/features/user/application/ports/i-user-repository";
+import { UserModule } from "~/features/user/user.module";
+import {
+  DATE_PROVIDER,
+  type IDateProvider,
+} from "~/shared/application/interfaces/i-date-provider";
+import {
+  ID_GENERATOR,
+  type IIdGenerator,
+} from "~/shared/application/interfaces/i-id-generator";
+import { SESSION_RESOLVER } from "~/shared/application/interfaces/i-session-resolver";
+import {
+  UNIT_OF_WORK,
+  type IUnitOfWork,
+} from "~/shared/application/interfaces/i-unit-of-work";
+import { ADMIN_EMAILS } from "~/shared/infrastructure/config/admin-emails";
+import { CONFIG, type Env } from "~/shared/infrastructure/config/env";
+import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
+import { SESSION_COOKIE_SECURE } from "~/shared/presentation/http/cookie";
+
+import {
+  IDENTITY_REPOSITORY,
+  type IIdentityRepository,
+} from "./application/ports/i-identity-repository";
+import {
+  PASSWORD_HASHER,
+  type IPasswordHasher,
+} from "./application/ports/i-password-hasher";
+import {
+  SESSION_REPOSITORY,
+  type ISessionRepository,
+} from "./application/ports/i-session-repository";
+import {
+  SESSION_TOKEN_SERVICE,
+  type ISessionTokenService,
+} from "./application/ports/i-session-token-service";
+import { SessionIssuer } from "./application/services/session-issuer";
+import { SessionResolver } from "./application/services/session-resolver";
 import { GetSessionUseCase } from "./application/usecases/get-session";
 import { SignInUseCase } from "./application/usecases/sign-in";
 import { SignOutUseCase } from "./application/usecases/sign-out";
 import { SignUpUseCase } from "./application/usecases/sign-up";
-import { IDENTITY_REPOSITORY, type IIdentityRepository } from "./application/ports/i-identity-repository";
-import { PASSWORD_HASHER, type IPasswordHasher } from "./application/ports/i-password-hasher";
-import { SESSION_REPOSITORY, type ISessionRepository } from "./application/ports/i-session-repository";
-import { SESSION_TOKEN_SERVICE, type ISessionTokenService } from "./application/ports/i-session-token-service";
-import { SessionIssuer } from "./application/services/session-issuer";
 import { IdentityRepositoryAdapter } from "./identity-repository.adapter";
 import { DrizzleSessionRepository } from "./infrastructure/repositories/drizzle-session-repository";
 import { ScryptPasswordHasher } from "./infrastructure/services/scrypt-password-hasher";
 import { WebCryptoSessionTokenService } from "./infrastructure/services/webcrypto-session-token-service";
 import { AuthController } from "./presentation/http/auth.controller";
-import { SessionResolver } from "./application/services/session-resolver";
-import { USER_REPOSITORY, type IUserRepository } from "../user/application/ports/i-user-repository";
-import { UserModule } from "../user/user.module";
 
 @Module({
   imports: [UserModule],

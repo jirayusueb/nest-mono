@@ -1,10 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AwsClient } from "aws4fetch";
-import { CONFIG, type Env } from "../../../../shared/infrastructure/config/env";
+
 import type {
   BucketObjectHead,
   IBucketStore,
-} from "../../application/ports/i-bucket-store";
+} from "~/features/media/application/ports/i-bucket-store";
+import { CONFIG, type Env } from "~/shared/infrastructure/config/env";
+
 import { newS3Client, s3Config, type S3Config } from "./s3";
 
 @Injectable()
@@ -22,9 +24,7 @@ export class RustFsBucketStore implements IBucketStore {
     _contentType: string,
     expiresSeconds: number,
   ): Promise<string> {
-    const url = new URL(
-      `${this.config.endpoint}/${this.config.bucket}/${key}`,
-    );
+    const url = new URL(`${this.config.endpoint}/${this.config.bucket}/${key}`);
 
     url.searchParams.set("X-Amz-Expires", String(expiresSeconds));
 

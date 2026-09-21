@@ -17,35 +17,33 @@ export interface PostPatch {
 }
 
 export const postApi = {
-  // ponytail: one big page keeps today's "show every post" UI; add pager
-  // controls when a real page size is needed.
   list: (params: { page?: number; limit?: number } = {}) =>
     apiFetch<Page<Post>>(
-      `/api/posts?${new URLSearchParams({
+      `/v1/posts?${new URLSearchParams({
         page: String(params.page ?? 1),
         limit: String(params.limit ?? 100),
       })}`,
     ),
 
-  get: (slug: string) => apiFetch<Post>(`/api/posts/${slug}`),
+  get: (slug: string) => apiFetch<Post>(`/v1/posts/${slug}`),
 
   categories: () =>
     apiFetch<{ categories: { name: string; slug: string }[] }>(
-      "/api/posts/categories",
+      "/v1/posts/categories",
     ),
 
   create: (draft: PostDraft) =>
-    apiFetch<Post>("/api/posts", {
+    apiFetch<Post>("/v1/posts", {
       method: "POST",
       body: JSON.stringify(draft),
     }),
 
   update: (id: string, patch: PostPatch) =>
-    apiFetch<Post>(`/api/posts/${id}`, {
+    apiFetch<Post>(`/v1/posts/${id}`, {
       method: "PATCH",
       body: JSON.stringify(patch),
     }),
 
   remove: (id: string) =>
-    apiFetch<void>(`/api/posts/${id}`, { method: "DELETE" }),
+    apiFetch<void>(`/v1/posts/${id}`, { method: "DELETE" }),
 };

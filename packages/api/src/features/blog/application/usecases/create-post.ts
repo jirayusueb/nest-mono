@@ -1,19 +1,19 @@
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
-import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
-import { make } from "../../../../shared/kernel/types/brand";
-import type { PostId } from "../../../../shared/kernel/types/ids";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
-import { PostEntity } from "../../domain/entities/post-entity";
-import { SlugVO } from "../../domain/values/slug-vo";
 import {
   toPostOutput,
   type CreatePostInput,
   type PostOutput,
-} from "../dtos/blog-dtos";
-import type { IPostRepository } from "../ports/i-post-repository";
+} from "~/features/blog/application/dtos/blog-dtos";
+import type { IPostRepository } from "~/features/blog/application/ports/i-post-repository";
+import { PostEntity } from "~/features/blog/domain/entities/post-entity";
+import { SlugVO } from "~/features/blog/domain/values/slug-vo";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import type { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { make } from "~/shared/kernel/types/brand";
+import type { PostId } from "~/shared/kernel/types/ids";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 const MAX_SLUG_ATTEMPTS = 50;
 

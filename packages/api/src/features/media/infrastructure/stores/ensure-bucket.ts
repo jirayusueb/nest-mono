@@ -1,4 +1,5 @@
-import type { Env } from "../../../../shared/infrastructure/config/env";
+import type { Env } from "~/shared/infrastructure/config/env";
+
 import { newS3Client, s3Config } from "./s3";
 
 export async function ensureBucket(env: Env): Promise<void> {

@@ -1,4 +1,4 @@
-import type { SessionUser } from "../../../../shared/kernel/types/session-user";
+import type { SessionUser } from "~/shared/kernel/types/session-user";
 
 export interface ClientMeta {
   ipAddress: string | null;

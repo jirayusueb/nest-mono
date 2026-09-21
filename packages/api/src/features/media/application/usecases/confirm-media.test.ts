@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ConfirmMediaUseCase } from "./confirm-media";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { make } from "../../../../shared/kernel/types/brand";
-import { ListMediaUseCase } from "./list-media";
-import { MAX_UPLOAD_BYTES } from "../../domain/rules/media-rules";
+
 import {
   mockBucketStore,
   mockMediaRepository,
   storedMedia,
-} from "../testing/mocks";
+} from "~/features/media/application/testing/mocks";
+import { MAX_UPLOAD_BYTES } from "~/features/media/domain/rules/media-rules";
+import { make } from "~/shared/kernel/types/brand";
+import type { UserId } from "~/shared/kernel/types/ids";
+
+import { ConfirmMediaUseCase } from "./confirm-media";
+import { ListMediaUseCase } from "./list-media";
 
 const OWNER = make<UserId>("u1");
 

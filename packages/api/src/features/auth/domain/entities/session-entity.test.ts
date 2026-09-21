@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import { make } from "../../../../shared/kernel/types/brand";
+
+import { fakeTokenHash } from "~/features/auth/domain/testing/fake-token-hash";
+import { make } from "~/shared/kernel/types/brand";
+import type { SessionId, UserId } from "~/shared/kernel/types/ids";
+
 import { SessionEntity } from "./session-entity";
-import { fakeTokenHash } from "../testing/fake-token-hash";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 

@@ -9,13 +9,15 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import type { SessionUser } from "../../../../shared/kernel/types/session-user";
-import { CurrentUser } from "../../../../shared/presentation/http/current-user.decorator";
-import { SessionGuard } from "../../../../shared/presentation/http/session.guard";
-import { ConfirmMediaUseCase } from "../../application/usecases/confirm-media";
-import { CreateUploadTargetUseCase } from "../../application/usecases/create-upload-target";
-import { DeleteMediaUseCase } from "../../application/usecases/delete-media";
-import { ListMediaUseCase } from "../../application/usecases/list-media";
+
+import { ConfirmMediaUseCase } from "~/features/media/application/usecases/confirm-media";
+import { CreateUploadTargetUseCase } from "~/features/media/application/usecases/create-upload-target";
+import { DeleteMediaUseCase } from "~/features/media/application/usecases/delete-media";
+import { ListMediaUseCase } from "~/features/media/application/usecases/list-media";
+import type { SessionUser } from "~/shared/kernel/types/session-user";
+import { CurrentUser } from "~/shared/presentation/http/current-user.decorator";
+import { SessionGuard } from "~/shared/presentation/http/session.guard";
+
 import type {
   ConfirmMediaResponse,
   MediaListResponse,
@@ -30,7 +32,7 @@ import {
 } from "./dtos/media-schemas";
 import { MediaMappers } from "./mappers/media-mappers";
 
-@Controller("api/media")
+@Controller("media")
 @UseGuards(SessionGuard)
 export class MediaController {
   constructor(

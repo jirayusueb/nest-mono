@@ -1,4 +1,4 @@
-import type { SessionUser } from "../../kernel/types/session-user";
+import type { SessionUser } from "~/shared/kernel/types/session-user";
 
 export const SESSION_RESOLVER = "SESSION_RESOLVER";
 

@@ -1,5 +1,5 @@
-import type { UserEntity } from "../../../domain/entities/user-entity";
-import type { UserResponse } from "../dtos/user-response";
+import type { UserEntity } from "~/features/user/domain/entities/user-entity";
+import type { UserResponse } from "~/features/user/presentation/http/dtos/user-response";
 
 export class UserMappers {
   static toUserResponse(user: UserEntity): UserResponse {

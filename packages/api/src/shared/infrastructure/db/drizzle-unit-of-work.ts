@@ -1,5 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { IUnitOfWork } from "../../application/interfaces/i-unit-of-work";
+
+import type { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
+
 import { DATABASE, type Database } from "./database";
 import { txStorage } from "./tx-storage";
 

@@ -1,4 +1,4 @@
-import type { IDateProvider } from "../../application/interfaces/i-date-provider";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
 
 export class RealDateProvider implements IDateProvider {
   now(): Date {

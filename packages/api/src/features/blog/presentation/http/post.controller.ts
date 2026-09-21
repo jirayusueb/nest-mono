@@ -11,24 +11,20 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import {
-  type PaginatedResponse,
-} from "../../../../shared/application/dtos/pagination";
-import type { SessionUser } from "../../../../shared/kernel/types/session-user";
-import { AdminGuard } from "../../../../shared/presentation/http/admin.guard";
-import { CurrentUser } from "../../../../shared/presentation/http/current-user.decorator";
-import { SessionGuard } from "../../../../shared/presentation/http/session.guard";
-import { CreatePostUseCase } from "../../application/usecases/create-post";
-import { DeletePostUseCase } from "../../application/usecases/delete-post";
-import { GetPostBySlugUseCase } from "../../application/usecases/get-post-by-slug";
-import { ListCategoriesUseCase } from "../../application/usecases/list-categories";
-import { ListPostsUseCase } from "../../application/usecases/list-posts";
-import { UpdatePostUseCase } from "../../application/usecases/update-post";
-import type {
-  CategoryListResponse,
-  PostResponse,
-} from "./dtos/blog-response";
-import { BlogMappers } from "./mappers/blog-mappers";
+
+import { CreatePostUseCase } from "~/features/blog/application/usecases/create-post";
+import { DeletePostUseCase } from "~/features/blog/application/usecases/delete-post";
+import { GetPostBySlugUseCase } from "~/features/blog/application/usecases/get-post-by-slug";
+import { ListCategoriesUseCase } from "~/features/blog/application/usecases/list-categories";
+import { ListPostsUseCase } from "~/features/blog/application/usecases/list-posts";
+import { UpdatePostUseCase } from "~/features/blog/application/usecases/update-post";
+import { type PaginatedResponse } from "~/shared/application/dtos/pagination";
+import type { SessionUser } from "~/shared/kernel/types/session-user";
+import { AdminGuard } from "~/shared/presentation/http/admin.guard";
+import { CurrentUser } from "~/shared/presentation/http/current-user.decorator";
+import { SessionGuard } from "~/shared/presentation/http/session.guard";
+
+import type { CategoryListResponse, PostResponse } from "./dtos/blog-response";
 import {
   createPostSchema,
   idSchema,
@@ -39,9 +35,10 @@ import {
   type ListPostsRequest,
   type UpdatePostRequest,
 } from "./dtos/blog-schemas";
+import { PostMappers } from "./mappers/post-mappers";
 
-@Controller("api/posts")
-export class BlogController {
+@Controller("posts")
+export class PostController {
   constructor(
     @Inject(ListPostsUseCase) private readonly listPosts: ListPostsUseCase,
     @Inject(ListCategoriesUseCase)
@@ -59,7 +56,7 @@ export class BlogController {
   ): Promise<PaginatedResponse<PostResponse>> {
     const result = await this.listPosts.execute(query);
 
-    return { ...result, items: result.items.map(BlogMappers.toPostResponse) };
+    return { ...result, items: result.items.map(PostMappers.toPostResponse) };
   }
 
   @Get("categories")
@@ -77,7 +74,7 @@ export class BlogController {
       throw result.error;
     }
 
-    return BlogMappers.toPostResponse(result.value);
+    return PostMappers.toPostResponse(result.value);
   }
 
   @Post()
@@ -88,14 +85,14 @@ export class BlogController {
     @CurrentUser() identity: SessionUser,
   ): Promise<PostResponse> {
     const result = await this.createPost.execute(
-      BlogMappers.toCreatePostInput(body, identity.id),
+      PostMappers.toCreatePostInput(body, identity.id),
     );
 
     if (result.isErr()) {
       throw result.error;
     }
 
-    return BlogMappers.toPostResponse(result.value);
+    return PostMappers.toPostResponse(result.value);
   }
 
   @Patch(":id")
@@ -106,14 +103,14 @@ export class BlogController {
     @CurrentUser() identity: SessionUser,
   ): Promise<PostResponse> {
     const result = await this.updatePost.execute(
-      BlogMappers.toUpdatePostInput(body, id, identity.id),
+      PostMappers.toUpdatePostInput(body, id, identity.id),
     );
 
     if (result.isErr()) {
       throw result.error;
     }
 
-    return BlogMappers.toPostResponse(result.value);
+    return PostMappers.toPostResponse(result.value);
   }
 
   @Delete(":id")
@@ -124,7 +121,7 @@ export class BlogController {
     @CurrentUser() identity: SessionUser,
   ): Promise<void> {
     const result = await this.deletePost.execute(
-      BlogMappers.toDeletePostInput(id, identity.id),
+      PostMappers.toDeletePostInput(id, identity.id),
     );
 
     if (result.isErr()) {

@@ -1,18 +1,18 @@
-import { make } from "../../../../../shared/kernel/types/brand";
-import type { PostId, UserId } from "../../../../../shared/kernel/types/ids";
 import type {
   CreatePostInput,
   DeletePostInput,
   PostOutput,
   UpdatePostInput,
-} from "../../../application/dtos/blog-dtos";
-import type { PostResponse } from "../dtos/blog-response";
+} from "~/features/blog/application/dtos/blog-dtos";
+import type { PostResponse } from "~/features/blog/presentation/http/dtos/blog-response";
 import type {
   CreatePostRequest,
   UpdatePostRequest,
-} from "../dtos/blog-schemas";
+} from "~/features/blog/presentation/http/dtos/blog-schemas";
+import { make } from "~/shared/kernel/types/brand";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
 
-export class BlogMappers {
+export class PostMappers {
   static toPostResponse(dto: PostOutput): PostResponse {
     return {
       id: dto.id,

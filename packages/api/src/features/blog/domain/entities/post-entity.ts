@@ -1,12 +1,15 @@
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import { err, ok, Result } from "../../../../shared/kernel/types/result";
-import { DomainError } from "../../../../shared/kernel/errors/domain-error";
-import { SlugVO } from "../values/slug-vo";
-import { CategoryVO } from "../values/category-vo";
-import { TagVO } from "../values/tag-vo";
-import { MAX_TAGS_PER_POST } from "../rules/post-rules";
-import { PostTitleVO } from "../values/post-title-vo";
+import {
+  MAX_POST_CONTENT_LENGTH,
+  MAX_TAGS_PER_POST,
+} from "~/features/blog/domain/rules/post-rules";
+import { CategoryVO } from "~/features/blog/domain/values/category-vo";
+import { PostTitleVO } from "~/features/blog/domain/values/post-title-vo";
+import { SlugVO } from "~/features/blog/domain/values/slug-vo";
+import { TagVO } from "~/features/blog/domain/values/tag-vo";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { DomainError } from "~/shared/kernel/errors/domain-error";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
+import { err, ok, Result } from "~/shared/kernel/types/result";
 
 export interface PostCreation {
   id: PostId;
@@ -37,7 +40,7 @@ interface PostParts {
 }
 
 export class PostEntity {
-  constructor(
+  private constructor(
     public readonly id: PostId,
     public readonly authorId: UserId,
     public readonly title: PostTitleVO,
@@ -45,8 +48,6 @@ export class PostEntity {
     public readonly content: string,
     public readonly category: CategoryVO | null,
     public readonly tags: TagVO[],
-    // ponytail: dangling URL if the media object is later deleted; switch to a
-    // mediaId FK + join if that bites.
     public readonly thumbnailUrl: string | null,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
@@ -83,6 +84,14 @@ export class PostEntity {
     if (input.tags.length > MAX_TAGS_PER_POST) {
       return err(
         new DomainError(`A post can have at most ${MAX_TAGS_PER_POST} tags`),
+      );
+    }
+
+    if (input.content.length > MAX_POST_CONTENT_LENGTH) {
+      return err(
+        new DomainError(
+          `Post content must be at most ${MAX_POST_CONTENT_LENGTH} characters`,
+        ),
       );
     }
 

@@ -1,6 +1,9 @@
-import type { ListMediaInput, ListMediaOutput } from "../dtos/media-dtos";
-import type { IBucketStore } from "../ports/i-bucket-store";
-import type { IMediaRepository } from "../ports/i-media-repository";
+import type {
+  ListMediaInput,
+  ListMediaOutput,
+} from "~/features/media/application/dtos/media-dtos";
+import type { IBucketStore } from "~/features/media/application/ports/i-bucket-store";
+import type { IMediaRepository } from "~/features/media/application/ports/i-media-repository";
 
 export class ListMediaUseCase {
   constructor(

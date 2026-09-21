@@ -4,6 +4,9 @@ import type { ESTree } from "@oxlint/plugins";
 
 const FEATURE_PATH_RE =
 	/(?:^|\/)features\/([a-z0-9-]+)\/(domain|application|infrastructure|presentation)(?:\/|$)/u;
+// Files directly under features/<f>/ (modules, cross-feature adapters):
+// composition roots of the owning feature.
+const FEATURE_ROOT_PATH_RE = /(?:^|\/)features\/([a-z0-9-]+)\/[^/]+$/u;
 const SHARED_PATH_RE =
 	/(?:^|\/)shared\/(kernel|application|infrastructure|presentation)(?:\/|$)/u;
 const BOOTSTRAP_PATH_RE = /(?:^|\/)bootstrap\//u;
@@ -17,7 +20,14 @@ type FeatureLayer = "domain" | "application" | "infrastructure" | "presentation"
 type SharedLayer = "kernel" | FeatureLayer;
 
 type Classified =
-	| { kind: "feature"; feature: string; layer: FeatureLayer }
+	| {
+			kind: "feature";
+			feature: string;
+			layer: FeatureLayer;
+			isPorts: boolean;
+			isModule: boolean;
+	  }
+	| { kind: "featureRoot"; feature: string; isModule: boolean }
 	| { kind: "shared"; layer: SharedLayer }
 	| { kind: "bootstrap" }
 	| { kind: "db" }
@@ -29,9 +39,26 @@ const ALL_TYPE: RuntimeKinds = { hasRuntime: false, hasNonConstRuntime: false };
 const ALL_RUNTIME: RuntimeKinds = { hasRuntime: true, hasNonConstRuntime: true };
 
 function classifyPath(path: string): Classified {
+	const base = path.slice(path.lastIndexOf("/") + 1);
 	const feature = FEATURE_PATH_RE.exec(path);
 	if (feature) {
-		return { kind: "feature", feature: feature[1]!, layer: feature[2] as FeatureLayer };
+		const name = feature[1]!;
+		return {
+			kind: "feature",
+			feature: name,
+			layer: feature[2] as FeatureLayer,
+			isPorts: path.includes("/application/ports/"),
+			isModule: base === `${name}.module` || base === `${name}.module.ts`,
+		};
+	}
+	const featureRoot = FEATURE_ROOT_PATH_RE.exec(path);
+	if (featureRoot) {
+		const name = featureRoot[1]!;
+		return {
+			kind: "featureRoot",
+			feature: name,
+			isModule: base === `${name}.module` || base === `${name}.module.ts`,
+		};
 	}
 	const shared = SHARED_PATH_RE.exec(path);
 	if (shared) return { kind: "shared", layer: shared[1] as SharedLayer };
@@ -56,6 +83,8 @@ function label(c: Classified): string {
 	switch (c.kind) {
 		case "feature":
 			return `features/${c.feature}/${c.layer}`;
+		case "featureRoot":
+			return `features/${c.feature}`;
 		case "shared":
 			return `shared/${c.layer}`;
 		case "bootstrap":
@@ -121,7 +150,10 @@ function evaluate(
 		return { messageId: "kernelIsolation", data: { target: targetLabel } };
 	}
 
-	if (source.kind === "shared" && target.kind === "feature") {
+	if (
+		source.kind === "shared" &&
+		(target.kind === "feature" || target.kind === "featureRoot")
+	) {
 		return {
 			messageId: "sharedImportsFeature",
 			data: { target: targetLabel, to: target.feature },
@@ -129,15 +161,30 @@ function evaluate(
 	}
 
 	if (
-		source.kind === "feature" &&
-		target.kind === "feature" &&
-		target.feature !== source.feature
+		(source.kind === "feature" || source.kind === "featureRoot") &&
+		((target.kind === "feature" && target.feature !== source.feature) ||
+			(target.kind === "featureRoot" && target.feature !== source.feature))
 	) {
-		return {
-			messageId: "crossFeature",
-			data: { target: targetLabel, from: source.feature, to: target.feature },
-		};
+		// Cross-feature allowlist: the other feature's application ports
+		// (any import kind), its <feature>.module.ts (composition), or
+		// type-only domain imports. Everything else routes through shared.
+		const allowed =
+			(target.kind === "feature" &&
+				(target.isPorts ||
+					(target.layer === "domain" && !runtime.hasRuntime))) ||
+			(target.kind === "featureRoot" && target.isModule);
+		if (!allowed) {
+			return {
+				messageId: "crossFeature",
+				data: { target: targetLabel, from: source.feature, to: target.feature },
+			};
+		}
+		return null;
 	}
+
+	// Feature-root files are composition roots: own feature, shared, db, and
+	// bootstrap targets are unrestricted (cross-feature handled above).
+	if (source.kind === "featureRoot") return null;
 
 	const layer = source.layer;
 
@@ -181,7 +228,7 @@ export const noIllegalLayerImportsRule = defineRule({
 		type: "problem",
 		docs: {
 			description:
-				"Enforce clean-architecture layer boundaries in packages/api/src: inward-only dependencies, no cross-feature imports, shared never imports features (clean-architecture-guide.md §3).",
+				"Enforce clean-architecture layer boundaries in packages/api/src: inward-only dependencies, cross-feature imports only via application ports, feature modules, or type-only domain, shared never imports features (clean-architecture-guide.md §3).",
 		},
 		messages: {
 			domainIsolation:
@@ -205,7 +252,12 @@ export const noIllegalLayerImportsRule = defineRule({
 		const filename = context.filename.replaceAll("\\", "/");
 		const source = classifyPath(filename);
 		// bootstrap, db, and files outside packages/api/src are unrestricted.
-		if (source.kind !== "feature" && source.kind !== "shared") return {};
+		if (
+			source.kind !== "feature" &&
+			source.kind !== "featureRoot" &&
+			source.kind !== "shared"
+		)
+			return {};
 		const dir = filename.slice(0, filename.lastIndexOf("/"));
 
 		const check = (

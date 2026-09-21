@@ -7,7 +7,7 @@ interface UploadTarget {
 }
 
 export async function uploadImage(file: File): Promise<string> {
-  const target = await apiFetch<UploadTarget>("/api/media/target", {
+  const target = await apiFetch<UploadTarget>("/v1/media/target", {
     method: "POST",
     body: JSON.stringify({ contentType: file.type, bytes: file.size }),
   });
@@ -22,7 +22,7 @@ export async function uploadImage(file: File): Promise<string> {
     throw new Error(`Upload failed: ${put.status}`);
   }
 
-  const confirmed = await apiFetch<{ url: string }>("/api/media/confirm", {
+  const confirmed = await apiFetch<{ url: string }>("/v1/media/confirm", {
     method: "POST",
     body: JSON.stringify({ key: target.key }),
   });

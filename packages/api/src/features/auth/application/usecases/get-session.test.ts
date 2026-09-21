@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { mockDateProvider } from "../../../../shared/application/testing/mocks";
-import { GetSessionUseCase } from "./get-session";
+
 import {
   mockIdentityRepository,
   mockSessionRepository,
   mockSessionTokenService,
   storedSession,
-} from "../testing/mocks";
+} from "~/features/auth/application/testing/mocks";
+import { mockDateProvider } from "~/shared/application/testing/mocks";
+
+import { GetSessionUseCase } from "./get-session";
 
 const NOW = new Date("2026-01-01T12:00:00.000Z");
 
@@ -21,6 +23,7 @@ function setup(adminEmails: ReadonlySet<string> = new Set()) {
       passwordHash: "prefix:supersecret",
     },
   ]);
+
   const { repo: sessionRepo, sessions } = mockSessionRepository();
 
   const useCase = new GetSessionUseCase(

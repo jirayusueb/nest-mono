@@ -1,8 +1,9 @@
 import { z } from "zod";
+
 import {
   ALLOWED_IMAGE_TYPES,
   MAX_UPLOAD_BYTES,
-} from "../../../domain/rules/media-rules";
+} from "~/features/media/domain/rules/media-rules";
 
 export const uploadTargetSchema = z.object({
   contentType: z.enum(ALLOWED_IMAGE_TYPES),

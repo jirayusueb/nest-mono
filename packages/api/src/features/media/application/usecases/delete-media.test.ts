@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { make } from "../../../../shared/kernel/types/brand";
-import { DeleteMediaUseCase } from "./delete-media";
+
 import {
   mockBucketStore,
   mockMediaRepository,
   storedMedia,
-} from "../testing/mocks";
+} from "~/features/media/application/testing/mocks";
+import { make } from "~/shared/kernel/types/brand";
+import type { UserId } from "~/shared/kernel/types/ids";
+
+import { DeleteMediaUseCase } from "./delete-media";
 
 const OWNER = make<UserId>("u1");
 

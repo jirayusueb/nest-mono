@@ -1,12 +1,14 @@
 import { Controller, Get, Inject, UseGuards } from "@nestjs/common";
-import type { SessionUser } from "../../../../shared/kernel/types/session-user";
-import { CurrentUser } from "../../../../shared/presentation/http/current-user.decorator";
-import { SessionGuard } from "../../../../shared/presentation/http/session.guard";
-import { GetUserUseCase } from "../../application/usecases/get-user";
+
+import { GetUserUseCase } from "~/features/user/application/usecases/get-user";
+import type { SessionUser } from "~/shared/kernel/types/session-user";
+import { CurrentUser } from "~/shared/presentation/http/current-user.decorator";
+import { SessionGuard } from "~/shared/presentation/http/session.guard";
+
 import type { UserResponse } from "./dtos/user-response";
 import { UserMappers } from "./mappers/user-mappers";
 
-@Controller("api/user")
+@Controller("user")
 @UseGuards(SessionGuard)
 export class UserController {
   constructor(

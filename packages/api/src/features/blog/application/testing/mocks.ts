@@ -1,15 +1,16 @@
 import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
+
+import type { IPostRepository } from "~/features/blog/application/ports/i-post-repository";
+import { PostEntity } from "~/features/blog/domain/entities/post-entity";
+import { CategoryVO } from "~/features/blog/domain/values/category-vo";
+import { PostTitleVO } from "~/features/blog/domain/values/post-title-vo";
+import { SlugVO } from "~/features/blog/domain/values/slug-vo";
+import { TagVO } from "~/features/blog/domain/values/tag-vo";
 import {
   offsetOf,
   toPaginatedResponse,
-} from "../../../../shared/application/dtos/pagination";
-import { CategoryVO } from "../../domain/values/category-vo";
-import { SlugVO } from "../../domain/values/slug-vo";
-import { TagVO } from "../../domain/values/tag-vo";
-import { PostTitleVO } from "../../domain/values/post-title-vo";
-import { PostEntity } from "../../domain/entities/post-entity";
-import type { IPostRepository } from "../ports/i-post-repository";
+} from "~/shared/application/dtos/pagination";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
 
 interface StoredPostOverrides {
   id?: PostId;
@@ -41,6 +42,7 @@ export function storedPost(overrides: StoredPostOverrides = {}): PostEntity {
     deletedAt: null,
     ...overrides,
   };
+
   return PostEntity.restore(
     p.id,
     p.authorId,

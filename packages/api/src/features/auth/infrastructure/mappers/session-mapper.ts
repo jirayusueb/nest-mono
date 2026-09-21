@@ -1,6 +1,6 @@
-import type { session } from "../../../../db/schema/auth";
-import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import { SessionEntity } from "../../domain/entities/session-entity";
+import { SessionEntity } from "~/features/auth/domain/entities/session-entity";
+import type { session } from "~/shared/infrastructure/db/schema/auth";
+import type { SessionId, UserId } from "~/shared/kernel/types/ids";
 
 type SessionRow = typeof session.$inferSelect;
 

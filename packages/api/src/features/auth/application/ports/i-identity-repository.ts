@@ -1,5 +1,5 @@
-import type { EmailVO } from "../../../../shared/kernel/values/email-vo";
-import type { UserId } from "../../../../shared/kernel/types/ids";
+import type { UserId } from "~/shared/kernel/types/ids";
+import type { EmailVO } from "~/shared/kernel/values/email-vo";
 
 export const IDENTITY_REPOSITORY = "IDENTITY_REPOSITORY";
 

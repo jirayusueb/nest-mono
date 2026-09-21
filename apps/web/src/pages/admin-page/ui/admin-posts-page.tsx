@@ -15,8 +15,6 @@ import { Result } from "better-result";
 import { Page } from "@nest-mono/ui";
 import { POST_QUERIES, useRemovePost } from "~/features/manage-posts";
 
-// ponytail: edit/delete stay author-scoped server-side; non-authored posts 404
-// here — add authorId to PostResponse when multi-admin bites.
 export function AdminPostsPage() {
   const removePost = useRemovePost();
   const [error, setError] = useState<string | null>(null);

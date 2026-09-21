@@ -1,7 +1,10 @@
 {
   "extends": "../../packages/config/tsconfig.base.json",
   "compilerOptions": {
-    "types": ["bun"]
+    "types": ["bun"],
+    "paths": {
+      "~/*": ["../../packages/api/src/*"]
+    }
   },
   "include": ["src"]
 }

@@ -1,12 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq } from "drizzle-orm";
-import { media } from "../../../../db/schema/media";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { DATABASE, type Database } from "../../../../shared/infrastructure/database/database";
-import { activeDb } from "../../../../shared/infrastructure/database/tx-storage";
-import type { MediaRecord } from "../../application/dtos/media-dtos";
-import type { IMediaRepository } from "../../application/ports/i-media-repository";
-import { MediaMapper } from "../mappers/media-mapper";
+
+import type { MediaRecord } from "~/features/media/application/dtos/media-dtos";
+import type { IMediaRepository } from "~/features/media/application/ports/i-media-repository";
+import { MediaMapper } from "~/features/media/infrastructure/mappers/media-mapper";
+import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
+import { media } from "~/shared/infrastructure/db/schema/media";
+import { activeDb } from "~/shared/infrastructure/db/tx-storage";
+import type { UserId } from "~/shared/kernel/types/ids";
 
 @Injectable()
 export class DrizzleMediaRepository implements IMediaRepository {

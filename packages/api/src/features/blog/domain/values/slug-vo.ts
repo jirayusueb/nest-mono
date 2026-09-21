@@ -1,11 +1,11 @@
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { DomainError } from "../../../../shared/kernel/errors/domain-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { DomainError } from "~/shared/kernel/errors/domain-error";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 
-const MAX_SLUG_LENGTH = 200;
+export const MAX_SLUG_LENGTH = 200;
 
 export class SlugVO {
   private constructor(public readonly value: string) {}

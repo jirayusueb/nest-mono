@@ -1,14 +1,15 @@
 import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
-import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import { SessionEntity } from "../../domain/entities/session-entity";
-import { fakeTokenHash } from "../../domain/testing/fake-token-hash";
+
 import type {
   AuthIdentity,
   IIdentityRepository,
-} from "../ports/i-identity-repository";
-import type { IPasswordHasher } from "../ports/i-password-hasher";
-import type { ISessionRepository } from "../ports/i-session-repository";
-import type { ISessionTokenService } from "../ports/i-session-token-service";
+} from "~/features/auth/application/ports/i-identity-repository";
+import type { IPasswordHasher } from "~/features/auth/application/ports/i-password-hasher";
+import type { ISessionRepository } from "~/features/auth/application/ports/i-session-repository";
+import type { ISessionTokenService } from "~/features/auth/application/ports/i-session-token-service";
+import { SessionEntity } from "~/features/auth/domain/entities/session-entity";
+import { fakeTokenHash } from "~/features/auth/domain/testing/fake-token-hash";
+import type { SessionId, UserId } from "~/shared/kernel/types/ids";
 
 export interface MockIdentityRepo {
   repo: DeepMocked<IIdentityRepository>;

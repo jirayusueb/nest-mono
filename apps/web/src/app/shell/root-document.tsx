@@ -1,12 +1,15 @@
-import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
+import { CacheProvider } from "@emotion/react";
 import Button from "@mui/material/Button";
 import { HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router";
 import React from "react";
+
 import { UiProvider } from "@nest-mono/ui";
-import { QueryProvider } from "./query-provider";
+
 import { SessionProvider, useSession } from "~/entities/user";
 import { authClient } from "~/shared/auth";
+
+import { QueryProvider } from "./query-provider";
 
 function Header() {
   const { user, setUser } = useSession();
@@ -52,7 +55,6 @@ function Header() {
 }
 
 export function RootDocument() {
-  // Per-request Emotion cache keeps SSR styles deterministic.
   const emotionCache = createCache({ key: "css" });
 
   return (

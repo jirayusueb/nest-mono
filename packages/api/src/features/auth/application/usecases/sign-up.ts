@@ -1,18 +1,21 @@
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
-import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
-import { make } from "../../../../shared/kernel/types/brand";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
-import { EmailVO } from "../../../../shared/kernel/values/email-vo";
-import { NameRules } from "../../domain/rules/name-rules";
-import { PlainPasswordVO } from "../../domain/values/plain-password-vo";
-import type { IssuedSessionOutput, SignUpInput } from "../dtos/auth-dtos";
-import type { IIdentityRepository } from "../ports/i-identity-repository";
-import type { IPasswordHasher } from "../ports/i-password-hasher";
-import type { SessionIssuer } from "../services/session-issuer";
+import type {
+  IssuedSessionOutput,
+  SignUpInput,
+} from "~/features/auth/application/dtos/auth-dtos";
+import type { IIdentityRepository } from "~/features/auth/application/ports/i-identity-repository";
+import type { IPasswordHasher } from "~/features/auth/application/ports/i-password-hasher";
+import type { SessionIssuer } from "~/features/auth/application/services/session-issuer";
+import { PlainPasswordVO } from "~/features/auth/domain/values/plain-password-vo";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import type { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { validateName } from "~/shared/kernel/rules/name-rules";
+import { make } from "~/shared/kernel/types/brand";
+import type { UserId } from "~/shared/kernel/types/ids";
+import { err } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
+import { EmailVO } from "~/shared/kernel/values/email-vo";
 
 export class SignUpUseCase {
   constructor(
@@ -41,7 +44,7 @@ export class SignUpUseCase {
 
     const name = input.name.trim();
 
-    const nameCheck = NameRules.validate(name);
+    const nameCheck = validateName(name);
 
     if (!nameCheck.valid) {
       return err(AppError.validation(nameCheck.errors.join(", ")));

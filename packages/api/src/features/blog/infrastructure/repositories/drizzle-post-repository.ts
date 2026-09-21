@@ -1,34 +1,38 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
+
+import type { IPostRepository } from "~/features/blog/application/ports/i-post-repository";
+import type { PostEntity } from "~/features/blog/domain/entities/post-entity";
+import { CategoryVO } from "~/features/blog/domain/values/category-vo";
 import {
-  category as categoryTable,
-  tag as tagTable,
-  post as postTable,
-  postTag,
-} from "../../../../db/schema/blog";
+  PostMapper,
+  type TagRefRow,
+} from "~/features/blog/infrastructure/mappers/post-mapper";
 import {
   offsetOf,
   toPaginatedResponse,
   type PaginatedRequest,
   type PaginatedResponse,
-} from "../../../../shared/application/dtos/pagination";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
+} from "~/shared/application/dtos/pagination";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import { DATE_PROVIDER } from "~/shared/application/interfaces/i-date-provider";
+import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import { ID_GENERATOR } from "~/shared/application/interfaces/i-id-generator";
 import {
   DATABASE,
   type Database,
   type Tx,
-} from "../../../../shared/infrastructure/database/database";
-import { activeDb } from "../../../../shared/infrastructure/database/tx-storage";
-import { DATE_PROVIDER } from "../../../../shared/application/interfaces/i-date-provider";
-import { ID_GENERATOR } from "../../../../shared/application/interfaces/i-id-generator";
-import type { PostEntity } from "../../domain/entities/post-entity";
-import { CategoryVO } from "../../domain/values/category-vo";
-import type { IPostRepository } from "../../application/ports/i-post-repository";
-import { BlogMapper, type TagRefRow } from "../mappers/blog-mapper";
+} from "~/shared/infrastructure/db/database";
+import {
+  category as categoryTable,
+  tag as tagTable,
+  post as postTable,
+  postTag,
+} from "~/shared/infrastructure/db/schema/blog";
+import { activeDb } from "~/shared/infrastructure/db/tx-storage";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
 
 const SORTABLE: Record<string, PgColumn> = {
   createdAt: postTable.createdAt,
@@ -37,7 +41,7 @@ const SORTABLE: Record<string, PgColumn> = {
 };
 
 @Injectable()
-export class DrizzleBlogRepository implements IPostRepository {
+export class DrizzlePostRepository implements IPostRepository {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
     @Inject(ID_GENERATOR) private readonly ids: IIdGenerator,
@@ -75,7 +79,7 @@ export class DrizzleBlogRepository implements IPostRepository {
     );
 
     const items = rows.map((row) =>
-      BlogMapper.toDomain(
+      PostMapper.toDomain(
         row.post,
         row.category,
         tagRows.get(row.post.id) ?? [],
@@ -103,7 +107,7 @@ export class DrizzleBlogRepository implements IPostRepository {
     // revalidation.
     const tagRows = await this.tagsFor([row.post.id as PostId]);
 
-    return BlogMapper.toDomain(
+    return PostMapper.toDomain(
       row.post,
       row.category,
       tagRows.get(row.post.id) ?? [],
@@ -129,7 +133,7 @@ export class DrizzleBlogRepository implements IPostRepository {
 
     const tagRows = await this.tagsFor([postId]);
 
-    return BlogMapper.toDomain(
+    return PostMapper.toDomain(
       row.post,
       row.category,
       tagRows.get(postId) ?? [],
@@ -175,33 +179,36 @@ export class DrizzleBlogRepository implements IPostRepository {
       try {
         await tx
           .insert(postTable)
-        .values({
-          id: entity.id,
-          authorId: entity.authorId,
-          title: entity.title.value,
-          slug: entity.slug.value,
-          content: entity.content,
-          thumbnailUrl: entity.thumbnailUrl,
-          categoryId,
-          createdAt: entity.createdAt,
-          updatedAt: entity.updatedAt,
-          deletedAt: entity.deletedAt,
-        })
-        .onConflictDoUpdate({
-          target: postTable.id,
-          set: {
+          .values({
+            id: entity.id,
+            authorId: entity.authorId,
             title: entity.title.value,
+            slug: entity.slug.value,
             content: entity.content,
             thumbnailUrl: entity.thumbnailUrl,
             categoryId,
+            createdAt: entity.createdAt,
             updatedAt: entity.updatedAt,
             deletedAt: entity.deletedAt,
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: postTable.id,
+            set: {
+              title: entity.title.value,
+              content: entity.content,
+              thumbnailUrl: entity.thumbnailUrl,
+              categoryId,
+              updatedAt: entity.updatedAt,
+              deletedAt: entity.deletedAt,
+            },
+          });
       } catch (error) {
         // SAFETY: postgres driver errors carry a string `code`; 23505 is
         // unique_violation.
-        if (error instanceof Error && (error as { code?: string }).code === "23505") {
+        if (
+          error instanceof Error &&
+          (error as { code?: string }).code === "23505"
+        ) {
           throw AppError.conflict("Post slug already exists");
         }
 

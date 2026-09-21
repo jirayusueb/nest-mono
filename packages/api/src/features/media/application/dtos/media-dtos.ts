@@ -1,4 +1,4 @@
-import type { UserId } from "../../../../shared/kernel/types/ids";
+import type { UserId } from "~/shared/kernel/types/ids";
 
 export interface MediaRecord {
   id: string;

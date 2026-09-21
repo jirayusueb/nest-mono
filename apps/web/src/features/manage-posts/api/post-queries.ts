@@ -1,5 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
+
 import type { Page, Post } from "~/shared/api";
+
 import { postApi } from "./post-api";
 
 export const POST_QUERIES = {

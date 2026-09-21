@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
-import {
-  mockDateProvider,
-  mockIdGenerator,
-} from "../../../../shared/application/testing/mocks";
-import type { AuthIdentity } from "../ports/i-identity-repository";
-import { SessionIssuer } from "../services/session-issuer";
+
+import type { AuthIdentity } from "~/features/auth/application/ports/i-identity-repository";
+import { SessionIssuer } from "~/features/auth/application/services/session-issuer";
 import {
   mockIdentityRepository,
   mockPasswordHasher,
   mockSessionRepository,
   mockSessionTokenService,
-} from "../testing/mocks";
+} from "~/features/auth/application/testing/mocks";
+import {
+  mockDateProvider,
+  mockIdGenerator,
+} from "~/shared/application/testing/mocks";
+
 import { SignInUseCase } from "./sign-in";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");

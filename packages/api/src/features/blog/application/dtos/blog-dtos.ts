@@ -1,5 +1,5 @@
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import type { PostEntity } from "../../domain/entities/post-entity";
+import type { PostEntity } from "~/features/blog/domain/entities/post-entity";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
 
 export interface PostOutput {
   id: string;

@@ -1,10 +1,10 @@
-import type { category, post } from "../../../../db/schema/blog";
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import { PostEntity } from "../../domain/entities/post-entity";
-import { CategoryVO } from "../../domain/values/category-vo";
-import { TagVO } from "../../domain/values/tag-vo";
-import { PostTitleVO } from "../../domain/values/post-title-vo";
-import { SlugVO } from "../../domain/values/slug-vo";
+import { PostEntity } from "~/features/blog/domain/entities/post-entity";
+import { CategoryVO } from "~/features/blog/domain/values/category-vo";
+import { PostTitleVO } from "~/features/blog/domain/values/post-title-vo";
+import { SlugVO } from "~/features/blog/domain/values/slug-vo";
+import { TagVO } from "~/features/blog/domain/values/tag-vo";
+import type { category, post } from "~/shared/infrastructure/db/schema/blog";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
 
 export type PostRow = typeof post.$inferSelect;
 
@@ -12,7 +12,7 @@ export type CategoryRow = typeof category.$inferSelect;
 
 export type TagRefRow = { name: string; slug: string };
 
-export class BlogMapper {
+export class PostMapper {
   static toDomain(
     postRow: PostRow,
     categoryRow: CategoryRow | null,

@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
-import {
-  mockDateProvider,
-  mockIdGenerator,
-  mockUnitOfWork,
-} from "../../../../shared/application/testing/mocks";
-import { SessionIssuer } from "../services/session-issuer";
+
+import { SessionIssuer } from "~/features/auth/application/services/session-issuer";
 import {
   mockIdentityRepository,
   mockPasswordHasher,
   mockSessionRepository,
   mockSessionTokenService,
-} from "../testing/mocks";
+} from "~/features/auth/application/testing/mocks";
+import {
+  mockDateProvider,
+  mockIdGenerator,
+  mockUnitOfWork,
+} from "~/shared/application/testing/mocks";
+
 import { SignUpUseCase } from "./sign-up";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
@@ -61,7 +63,6 @@ describe("sign up", () => {
     expect(issued.expiresAt.toISOString()).toBe("2026-01-08T00:00:00.000Z");
     expect(identities).toHaveLength(1);
     expect(identities[0]?.passwordHash).toBe("prefix:Supersecret1");
-    // digest only, never the cookie value
     expect(sessions[0]?.tokenHash).not.toBe(issued.token);
     expect(sessions[0]?.tokenHash).toMatch(/^[0-9a-f]{64}$/u);
   });

@@ -3,8 +3,9 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
-import { POST_QUERIES } from "./post-queries";
+
 import { postApi, type PostDraft, type PostPatch } from "./post-api";
+import { POST_QUERIES } from "./post-queries";
 
 function invalidatePostQueries(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: POST_QUERIES.all() });

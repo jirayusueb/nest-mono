@@ -1,12 +1,14 @@
 import { Global, Module } from "@nestjs/common";
-import { LOGGER } from "../application/interfaces/i-logger";
-import { DATE_PROVIDER } from "../application/interfaces/i-date-provider";
-import { ID_GENERATOR } from "../application/interfaces/i-id-generator";
-import { UNIT_OF_WORK } from "../application/interfaces/i-unit-of-work";
+
+import { DATE_PROVIDER } from "~/shared/application/interfaces/i-date-provider";
+import { ID_GENERATOR } from "~/shared/application/interfaces/i-id-generator";
+import { LOGGER } from "~/shared/application/interfaces/i-logger";
+import { UNIT_OF_WORK } from "~/shared/application/interfaces/i-unit-of-work";
+
 import { CONFIG, type Env } from "./config/env";
-import { createDatabase, DATABASE } from "./database/database";
-import { DrizzleUnitOfWork } from "./database/drizzle-unit-of-work";
 import { RealDateProvider } from "./date/real-date-provider";
+import { createDatabase, DATABASE } from "./db/database";
+import { DrizzleUnitOfWork } from "./db/drizzle-unit-of-work";
 import { UuidV7Generator } from "./ids/uuid-v7-generator";
 import { ConsoleLogger } from "./logging/console-logger";
 

@@ -1,10 +1,10 @@
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import type { IUnitOfWork } from "../../../../shared/application/interfaces/i-unit-of-work";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
-import type { DeletePostInput } from "../dtos/blog-dtos";
-import type { IPostRepository } from "../ports/i-post-repository";
+import type { DeletePostInput } from "~/features/blog/application/dtos/blog-dtos";
+import type { IPostRepository } from "~/features/blog/application/ports/i-post-repository";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import type { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 export class DeletePostUseCase {
   constructor(

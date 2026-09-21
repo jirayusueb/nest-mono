@@ -1,20 +1,20 @@
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "../../../../shared/application/interfaces/i-id-generator";
-import { AppError } from "../../../../shared/kernel/errors/app-error";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import type { Result } from "../../../../shared/kernel/types/result";
-import {
-  EXTENSION_BY_TYPE,
-  MAX_UPLOAD_BYTES,
-  isAllowedImageType,
-} from "../../domain/rules/media-rules";
 import type {
   CreateUploadTargetInput,
   MediaRecord,
   UploadTargetOutput,
-} from "../dtos/media-dtos";
-import type { IBucketStore } from "../ports/i-bucket-store";
-import type { IMediaRepository } from "../ports/i-media-repository";
+} from "~/features/media/application/dtos/media-dtos";
+import type { IBucketStore } from "~/features/media/application/ports/i-bucket-store";
+import type { IMediaRepository } from "~/features/media/application/ports/i-media-repository";
+import {
+  EXTENSION_BY_TYPE,
+  MAX_UPLOAD_BYTES,
+  isAllowedImageType,
+} from "~/features/media/domain/rules/media-rules";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 const PRESIGN_TTL_SECONDS = 300;
 

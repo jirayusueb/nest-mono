@@ -1,7 +1,8 @@
 import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
-import type { IDateProvider } from "../interfaces/i-date-provider";
-import type { IIdGenerator } from "../interfaces/i-id-generator";
-import type { IUnitOfWork } from "../interfaces/i-unit-of-work";
+
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import type { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
 
 export function mockDateProvider(current: Date): DeepMocked<IDateProvider> {
   const addSeconds = (seconds: number, from?: Date): Date =>

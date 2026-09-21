@@ -1,12 +1,12 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { getRequest } from "@tanstack/react-start/server";
+
 import { authClient } from "~/shared/auth";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
-    // During SSR there is no browser cookie jar — forward the request's
-    // cookie so the guard sees the same session the client will.
     const init: RequestInit = {};
+
     if (typeof document === "undefined") {
       const cookie = getRequest().headers.get("cookie");
 

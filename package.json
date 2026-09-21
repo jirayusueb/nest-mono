@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vp run -r dev",
     "check-types": "vp run -r check-types",
-    "test": "vp test run --dir packages/api",
+    "test": "vp test run --dir packages/api --coverage && bun run --filter @nest-mono/ui test && bun run --filter @nest-mono/web test",
     "db:generate": "vp run -r db:generate",
     "db:up": "alchemy deploy packages/infra/src/alchemy.run.ts",
     "destroy": "alchemy destroy packages/infra/src/alchemy.run.ts",

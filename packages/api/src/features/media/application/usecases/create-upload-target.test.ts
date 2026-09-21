@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
+
+import {
+  mockBucketStore,
+  mockMediaRepository,
+} from "~/features/media/application/testing/mocks";
 import {
   mockDateProvider,
   mockIdGenerator,
-} from "../../../../shared/application/testing/mocks";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { make } from "../../../../shared/kernel/types/brand";
+} from "~/shared/application/testing/mocks";
+import { make } from "~/shared/kernel/types/brand";
+import type { UserId } from "~/shared/kernel/types/ids";
+
 import { CreateUploadTargetUseCase } from "./create-upload-target";
-import { mockBucketStore, mockMediaRepository } from "../testing/mocks";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 

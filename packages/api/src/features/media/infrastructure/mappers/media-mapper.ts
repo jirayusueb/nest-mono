@@ -1,6 +1,6 @@
-import { media } from "../../../../db/schema/media";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import type { MediaRecord } from "../../application/dtos/media-dtos";
+import type { MediaRecord } from "~/features/media/application/dtos/media-dtos";
+import { media } from "~/shared/infrastructure/db/schema/media";
+import type { UserId } from "~/shared/kernel/types/ids";
 
 export type MediaRow = typeof media.$inferSelect;
 

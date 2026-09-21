@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { make } from "../../../../shared/kernel/types/brand";
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import { MAX_TAGS_PER_POST } from "../rules/post-rules";
+
+import {
+  MAX_POST_CONTENT_LENGTH,
+  MAX_TAGS_PER_POST,
+} from "~/features/blog/domain/rules/post-rules";
+import { make } from "~/shared/kernel/types/brand";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
+
 import { PostEntity } from "./post-entity";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
@@ -17,7 +22,7 @@ const BASE = {
   now: NOW,
 };
 
-describe("PostEntity tags cap", () => {
+describe("post entity tags cap", () => {
   it("accepts at most MAX_TAGS_PER_POST tags", () => {
     const result = PostEntity.create({
       ...BASE,
@@ -40,7 +45,22 @@ describe("PostEntity tags cap", () => {
   });
 });
 
-describe("PostEntity clock", () => {
+describe("post entity content cap", () => {
+  it("rejects content longer than MAX_POST_CONTENT_LENGTH", () => {
+    const result = PostEntity.create({
+      ...BASE,
+      tags: [],
+      content: "a".repeat(MAX_POST_CONTENT_LENGTH + 1),
+    });
+
+    expect(result.isErr()).toBe(true);
+    expect(result.isErr() && result.error.message).toBe(
+      `Post content must be at most ${MAX_POST_CONTENT_LENGTH} characters`,
+    );
+  });
+});
+
+describe("post entity clock", () => {
   const LATER = new Date("2026-02-01T00:00:00.000Z");
 
   it("stamps createdAt and updatedAt from the injected now", () => {

@@ -1,19 +1,19 @@
-import type { UserId } from "../../../../../shared/kernel/types/ids";
 import type {
   ConfirmMediaInput,
   CreateUploadTargetInput,
   DeleteMediaInput,
   ListMediaOutput,
   MediaOutput,
-} from "../../../application/dtos/media-dtos";
+} from "~/features/media/application/dtos/media-dtos";
 import type {
   MediaItemResponse,
   MediaListResponse,
-} from "../dtos/media-response";
+} from "~/features/media/presentation/http/dtos/media-response";
 import type {
   ConfirmMediaRequest,
   UploadTargetRequest,
-} from "../dtos/media-schemas";
+} from "~/features/media/presentation/http/dtos/media-schemas";
+import type { UserId } from "~/shared/kernel/types/ids";
 
 export class MediaMappers {
   static toMediaItemResponse(dto: MediaOutput): MediaItemResponse {

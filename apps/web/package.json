@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "test": "vitest run --config vitest.config.ts --coverage",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,11 +22,16 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^6.0.0",
+    "@vitest/coverage-v8": "4.1.11",
+    "happy-dom": "^20.14.5",
     "typescript": "^5.9.2",
     "vite": "^7.1.0",
-    "vite-tsconfig-paths": "^5.1.0"
+    "vite-tsconfig-paths": "^5.1.0",
+    "vitest": "4.1.11"
   }
 }

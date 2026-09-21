@@ -1,5 +1,6 @@
 import { AwsClient } from "aws4fetch";
-import type { Env } from "../../../../shared/infrastructure/config/env";
+
+import type { Env } from "~/shared/infrastructure/config/env";
 
 export interface S3Config {
   endpoint: string;

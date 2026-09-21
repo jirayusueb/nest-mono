@@ -1,7 +1,7 @@
-import { AppError } from "../errors/app-error";
-import { DomainError } from "../errors/domain-error";
-import { err, ok } from "../types/result";
-import type { Result } from "../types/result";
+import { AppError } from "~/shared/kernel/errors/app-error";
+import { DomainError } from "~/shared/kernel/errors/domain-error";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 

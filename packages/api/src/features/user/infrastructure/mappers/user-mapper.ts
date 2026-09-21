@@ -1,7 +1,7 @@
-import { user as userTable } from "../../../../db/schema/auth";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { EmailVO } from "../../../../shared/kernel/values/email-vo";
-import { UserEntity } from "../../domain/entities/user-entity";
+import { UserEntity } from "~/features/user/domain/entities/user-entity";
+import { user as userTable } from "~/shared/infrastructure/db/schema/auth";
+import type { UserId } from "~/shared/kernel/types/ids";
+import { EmailVO } from "~/shared/kernel/values/email-vo";
 
 export class UserMapper {
   static toDomain(row: typeof userTable.$inferSelect): UserEntity {

@@ -1,11 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { session } from "../../../../db/schema/auth";
-import { DATABASE, type Database } from "../../../../shared/infrastructure/database/database";
-import { activeDb } from "../../../../shared/infrastructure/database/tx-storage";
-import type { ISessionRepository } from "../../application/ports/i-session-repository";
-import { SessionEntity } from "../../domain/entities/session-entity";
-import { SessionMapper } from "../mappers/session-mapper";
+
+import type { ISessionRepository } from "~/features/auth/application/ports/i-session-repository";
+import { SessionEntity } from "~/features/auth/domain/entities/session-entity";
+import { SessionMapper } from "~/features/auth/infrastructure/mappers/session-mapper";
+import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
+import { session } from "~/shared/infrastructure/db/schema/auth";
+import { activeDb } from "~/shared/infrastructure/db/tx-storage";
 
 @Injectable()
 export class DrizzleSessionRepository implements ISessionRepository {

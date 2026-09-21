@@ -1,13 +1,25 @@
 import { createMock, type DeepMocked } from "@golevelup/ts-vitest";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import type { MediaRecord } from "../dtos/media-dtos";
+
+import type { MediaRecord } from "~/features/media/application/dtos/media-dtos";
 import type {
   BucketObjectHead,
   IBucketStore,
-} from "../ports/i-bucket-store";
-import type { IMediaRepository } from "../ports/i-media-repository";
+} from "~/features/media/application/ports/i-bucket-store";
+import type { IMediaRepository } from "~/features/media/application/ports/i-media-repository";
+import type { UserId } from "~/shared/kernel/types/ids";
 
-export function storedMedia(overrides: Partial<MediaRecord> = {}): MediaRecord {
+interface StoredMediaOverrides {
+  id?: string;
+  userId?: UserId;
+  key?: string;
+  contentType?: string;
+  bytes?: number;
+  confirmed?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export function storedMedia(overrides: StoredMediaOverrides = {}): MediaRecord {
   // SAFETY: fixture literals stand in for schema-issued ids.
   return {
     id: "m1",

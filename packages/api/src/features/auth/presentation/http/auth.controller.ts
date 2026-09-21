@@ -9,36 +9,35 @@ import {
   Res,
 } from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
+
+import { GetSessionUseCase } from "~/features/auth/application/usecases/get-session";
+import { SignInUseCase } from "~/features/auth/application/usecases/sign-in";
+import { SignOutUseCase } from "~/features/auth/application/usecases/sign-out";
+import { SignUpUseCase } from "~/features/auth/application/usecases/sign-up";
 import {
-  SESSION_COOKIE_SECURE,
   SESSION_COOKIE,
-  clearSessionCookieOptions,
-  readSessionToken,
+  SESSION_COOKIE_SECURE,
   sessionCookieOptions,
-} from "../../../../shared/presentation/http/cookie";
+} from "~/shared/presentation/http/cookie";
+import { CookieService } from "~/shared/presentation/http/cookie-service";
+
 import type {
   AuthSessionResponse,
   GetSessionResponse,
   SignOutResponse,
 } from "./dtos/auth-response";
-import { GetSessionUseCase } from "../../application/usecases/get-session";
-import { SignInUseCase } from "../../application/usecases/sign-in";
-import { SignOutUseCase } from "../../application/usecases/sign-out";
-import { SignUpUseCase } from "../../application/usecases/sign-up";
-import { AuthMappers } from "./mappers/auth-mappers";
 import { signInSchema, signUpSchema } from "./dtos/auth-schemas";
 import type { SignInRequest, SignUpRequest } from "./dtos/auth-schemas";
+import { AuthMappers } from "./mappers/auth-mappers";
 
 function clientMeta(req: FastifyRequest) {
   return {
     ipAddress: req.ip ?? null,
-    // SAFETY: fastify types header values as string|string[]|undefined, but
-    // user-agent is set by clients as a single scalar.
     userAgent: (req.headers["user-agent"] as string | undefined) ?? null,
   };
 }
 
-@Controller("api/auth")
+@Controller("auth")
 export class AuthController {
   constructor(
     @Inject(SignUpUseCase) private readonly signUp: SignUpUseCase,
@@ -46,6 +45,7 @@ export class AuthController {
     @Inject(SignOutUseCase) private readonly signOut: SignOutUseCase,
     @Inject(GetSessionUseCase) private readonly getSession: GetSessionUseCase,
     @Inject(SESSION_COOKIE_SECURE) private readonly cookieSecure: boolean,
+    @Inject(CookieService) private readonly cookies: CookieService,
   ) {}
 
   @Post("sign-up/email")
@@ -57,14 +57,15 @@ export class AuthController {
   ): Promise<AuthSessionResponse> {
     const result = await this.signUp.execute(
       AuthMappers.toSignUpInput(input, clientMeta(req)),
-    );
+    )
 
     if (result.isErr()) {
       throw result.error;
     }
 
     const { user, token, expiresAt } = result.value;
-    reply.cookie(
+    this.cookies.set(
+      reply,
       SESSION_COOKIE,
       token,
       sessionCookieOptions(expiresAt, this.cookieSecure),
@@ -89,7 +90,9 @@ export class AuthController {
     }
 
     const { user, token, expiresAt } = result.value;
-    reply.cookie(
+
+    this.cookies.set(
+      reply,
       SESSION_COOKIE,
       token,
       sessionCookieOptions(expiresAt, this.cookieSecure),
@@ -103,16 +106,16 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SignOutResponse> {
-    const token = req.cookies[SESSION_COOKIE] ?? null;
+    const token = this.cookies.read(req, SESSION_COOKIE);
 
     if (token) {
       await this.signOut.execute({ token });
     }
 
-    reply.cookie(
+    this.cookies.clear(
+      reply,
       SESSION_COOKIE,
-      "",
-      clearSessionCookieOptions(this.cookieSecure),
+      sessionCookieOptions(new Date(0), this.cookieSecure),
     );
 
     return { success: true };
@@ -122,11 +125,7 @@ export class AuthController {
   async getSessionRoute(
     @Req() req: FastifyRequest,
   ): Promise<GetSessionResponse | null> {
-    // SAFETY: header values are string|string[]|undefined, but only the scalar
-    // cookie header is read.
-    const token = readSessionToken(
-      new Headers(req.headers as Record<string, string>),
-    );
+    const token = this.cookies.read(req, SESSION_COOKIE);
 
     if (!token) {
       return null;

@@ -17,8 +17,6 @@ export default Alchemy.Stack(
       name: "nest-mono-network",
     });
 
-    // Volumes are retained on delete/replace — their contents are
-    // irreplaceable.
     const postgresData = yield* Docker.Volume("postgres-data", {
       name: "nest-mono-pgdata",
     }).pipe(Alchemy.RemovalPolicy.retain());
@@ -36,7 +34,6 @@ export default Alchemy.Stack(
         POSTGRES_PASSWORD: "app",
       },
       ports: [{ external: 5432, internal: 5432 }],
-      // Postgres 18 images want the single mount one level above PGDATA.
       volumes: [
         { hostPath: postgresData.name, containerPath: "/var/lib/postgresql" },
       ],

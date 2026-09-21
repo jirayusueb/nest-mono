@@ -1,24 +1,23 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
-import { account } from "../../db/schema/auth";
-import { DATABASE, type Database } from "../../shared/infrastructure/database/database";
-import { activeDb } from "../../shared/infrastructure/database/tx-storage";
-import type { UserId } from "../../shared/kernel/types/ids";
-import { EmailVO } from "../../shared/kernel/values/email-vo";
-import { USER_REPOSITORY, type IUserRepository } from "../user/application/ports/i-user-repository";
-import type { UserEntity } from "../user/domain/entities/user-entity";
+
+import {
+  USER_REPOSITORY,
+  type IUserRepository,
+} from "~/features/user/application/ports/i-user-repository";
+import type { UserEntity } from "~/features/user/domain/entities/user-entity";
+import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
+import { account } from "~/shared/infrastructure/db/schema/auth";
+import { activeDb } from "~/shared/infrastructure/db/tx-storage";
+import type { UserId } from "~/shared/kernel/types/ids";
+import { EmailVO } from "~/shared/kernel/values/email-vo";
+
 import type {
   AuthIdentity,
   IIdentityRepository,
   NewIdentity,
 } from "./application/ports/i-identity-repository";
 
-/**
- * Port adapter for IIdentityRepository (guide "Ports & Adapters"): user rows go
- * through the user feature's IUserRepository; the auth-owned `account` table
- * stays local. Sits at the feature root (composition root, like auth.module.ts)
- * because it composes two features.
- */
 @Injectable()
 export class IdentityRepositoryAdapter implements IIdentityRepository {
   constructor(
@@ -42,9 +41,6 @@ export class IdentityRepositoryAdapter implements IIdentityRepository {
     return this.users.emailExists(email);
   }
 
-  // Caller (SignUpUseCase) wraps this in uow.runInTransaction; both writes join
-  // that transaction via activeDb. No ambient-tx guard: the use case is the
-  // only caller and owns the transaction boundary.
   async createWithCredential(input: NewIdentity): Promise<AuthIdentity> {
     const created = await this.users.create({
       id: input.userId,
@@ -77,10 +73,7 @@ export class IdentityRepositoryAdapter implements IIdentityRepository {
       .select({ password: account.password })
       .from(account)
       .where(
-        and(
-          eq(account.userId, found.id),
-          eq(account.providerId, "credential"),
-        ),
+        and(eq(account.userId, found.id), eq(account.providerId, "credential")),
       )
       .limit(1);
 

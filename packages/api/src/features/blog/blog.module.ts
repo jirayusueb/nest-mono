@@ -1,21 +1,35 @@
 import { Module } from "@nestjs/common";
-import { ID_GENERATOR, type IIdGenerator } from "../../shared/application/interfaces/i-id-generator";
-import { UNIT_OF_WORK, type IUnitOfWork } from "../../shared/application/interfaces/i-unit-of-work";
-import { DATE_PROVIDER, type IDateProvider } from "../../shared/application/interfaces/i-date-provider";
+
+import {
+  DATE_PROVIDER,
+  type IDateProvider,
+} from "~/shared/application/interfaces/i-date-provider";
+import {
+  ID_GENERATOR,
+  type IIdGenerator,
+} from "~/shared/application/interfaces/i-id-generator";
+import {
+  UNIT_OF_WORK,
+  type IUnitOfWork,
+} from "~/shared/application/interfaces/i-unit-of-work";
+
+import {
+  POST_REPOSITORY,
+  type IPostRepository,
+} from "./application/ports/i-post-repository";
 import { CreatePostUseCase } from "./application/usecases/create-post";
 import { DeletePostUseCase } from "./application/usecases/delete-post";
 import { GetPostBySlugUseCase } from "./application/usecases/get-post-by-slug";
 import { ListCategoriesUseCase } from "./application/usecases/list-categories";
 import { ListPostsUseCase } from "./application/usecases/list-posts";
 import { UpdatePostUseCase } from "./application/usecases/update-post";
-import { POST_REPOSITORY, type IPostRepository } from "./application/ports/i-post-repository";
-import { DrizzleBlogRepository } from "./infrastructure/repositories/drizzle-blog-repository";
-import { BlogController } from "./presentation/http/blog.controller";
+import { DrizzlePostRepository } from "./infrastructure/repositories/drizzle-post-repository";
+import { PostController } from "./presentation/http/post.controller";
 
 @Module({
-  controllers: [BlogController],
+  controllers: [PostController],
   providers: [
-    { provide: POST_REPOSITORY, useClass: DrizzleBlogRepository },
+    { provide: POST_REPOSITORY, useClass: DrizzlePostRepository },
     {
       provide: ListPostsUseCase,
       useFactory: (repo: IPostRepository) => new ListPostsUseCase(repo),

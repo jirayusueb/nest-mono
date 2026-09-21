@@ -1,4 +1,3 @@
-// ponytail: collision-prone fixture digest; fine for tests, never production.
 export function fakeTokenHash(raw: string): string {
   const n = Math.max(raw.length, 1);
   let out = "";

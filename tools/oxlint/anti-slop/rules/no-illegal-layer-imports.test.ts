@@ -13,6 +13,7 @@ const FEATURE_DOMAIN_FILE = "/src/features/auth/domain/x.ts";
 const FEATURE_APPLICATION = "/src/features/auth/application/usecases/x.ts";
 const FEATURE_INFRA = "/src/features/auth/infrastructure/repositories/x.ts";
 const FEATURE_PRESENTATION = "/src/features/auth/presentation/http/x.ts";
+const FEATURE_ROOT = "/src/features/auth/auth.module.ts";
 const SHARED_KERNEL = "/src/shared/kernel/types/x.ts";
 const SHARED_APPLICATION = "/src/shared/application/interfaces/x.ts";
 const SHARED_PRESENTATION = "/src/shared/presentation/http/x.ts";
@@ -91,6 +92,32 @@ tester.run("anti-slop/no-illegal-layer-imports", noIllegalLayerImportsRule, {
 		{
 			code: 'import { ok } from "../../kernel/types/result";',
 			filename: SHARED_PRESENTATION,
+		},
+		// feature root (composition root): own feature and shared unrestricted
+		{
+			code: 'import { DrizzleAuthRepository } from "./infrastructure/repositories/drizzle-auth-repository";',
+			filename: FEATURE_ROOT,
+		},
+		{
+			code: 'import { env } from "../../shared/infrastructure/config/env";',
+			filename: FEATURE_ROOT,
+		},
+		// cross-feature allowlist: other feature's ports, module, type-only domain
+		{
+			code: 'import { USER_REPOSITORY } from "../user/application/ports/i-user-repository";',
+			filename: FEATURE_ROOT,
+		},
+		{
+			code: 'import { UserModule } from "../user/user.module";',
+			filename: FEATURE_ROOT,
+		},
+		{
+			code: 'import type { UserEntity } from "../user/domain/entities/user-entity";',
+			filename: FEATURE_ROOT,
+		},
+		{
+			code: 'import { USER_REPOSITORY } from "../../../user/application/ports/i-user-repository";',
+			filename: FEATURE_INFRA,
 		},
 		// unrestricted sources and non-relative specifiers
 		{
@@ -223,6 +250,33 @@ tester.run("anti-slop/no-illegal-layer-imports", noIllegalLayerImportsRule, {
 			code: 'import { UserEntity } from "../../../user/domain/entities/user-entity";',
 			filename: FEATURE_INFRA,
 			errors: [{ messageId: "crossFeature" }],
+		},
+		// feature root: cross-feature beyond the allowlist
+		{
+			code: 'import { DrizzleUserRepository } from "../user/infrastructure/repositories/drizzle-user-repository";',
+			filename: FEATURE_ROOT,
+			errors: [{ messageId: "crossFeature" }],
+		},
+		{
+			code: 'import { UserEntity } from "../user/domain/entities/user-entity";',
+			filename: FEATURE_ROOT,
+			errors: [{ messageId: "crossFeature" }],
+		},
+		{
+			code: 'import { GetUser } from "../user/application/usecases/get-user";',
+			filename: "/src/features/auth/identity-repository.adapter.ts",
+			errors: [{ messageId: "crossFeature" }],
+		},
+		{
+			code: 'import { IdentityRepositoryAdapter } from "../auth/identity-repository.adapter";',
+			filename: "/src/features/user/user.module.ts",
+			errors: [{ messageId: "crossFeature" }],
+		},
+		// shared never imports feature root files either
+		{
+			code: 'import { AuthModule } from "../../../features/auth/auth.module";',
+			filename: SHARED_APPLICATION,
+			errors: [{ messageId: "sharedImportsFeature" }],
 		},
 		// shared never imports features
 		{

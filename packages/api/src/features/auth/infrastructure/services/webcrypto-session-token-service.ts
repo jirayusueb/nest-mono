@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import type { ISessionTokenService } from "../../application/ports/i-session-token-service";
+
+import type { ISessionTokenService } from "~/features/auth/application/ports/i-session-token-service";
 
 @Injectable()
 export class WebCryptoSessionTokenService implements ISessionTokenService {

@@ -1,13 +1,17 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { user } from "../../../../db/schema/auth";
-import type { EmailVO } from "../../../../shared/kernel/values/email-vo";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { DATABASE, type Database } from "../../../../shared/infrastructure/database/database";
-import { activeDb } from "../../../../shared/infrastructure/database/tx-storage";
-import type { UserEntity } from "../../domain/entities/user-entity";
-import type { IUserRepository, NewUser } from "../../application/ports/i-user-repository";
-import { UserMapper } from "../mappers/user-mapper";
+
+import type {
+  IUserRepository,
+  NewUser,
+} from "~/features/user/application/ports/i-user-repository";
+import type { UserEntity } from "~/features/user/domain/entities/user-entity";
+import { UserMapper } from "~/features/user/infrastructure/mappers/user-mapper";
+import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
+import { user } from "~/shared/infrastructure/db/schema/auth";
+import { activeDb } from "~/shared/infrastructure/db/tx-storage";
+import type { UserId } from "~/shared/kernel/types/ids";
+import type { EmailVO } from "~/shared/kernel/values/email-vo";
 
 @Injectable()
 export class DrizzleUserRepository implements IUserRepository {

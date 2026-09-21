@@ -1,7 +1,9 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+
 import { Injectable } from "@nestjs/common";
-import type { IPasswordHasher } from "../../application/ports/i-password-hasher";
-import { Result } from "../../../../shared/kernel/types/result";
+
+import type { IPasswordHasher } from "~/features/auth/application/ports/i-password-hasher";
+import { Result } from "~/shared/kernel/types/result";
 
 const KEY_LENGTH = 64;
 
@@ -26,7 +28,6 @@ export class ScryptPasswordHasher implements IPasswordHasher {
           expected,
         );
       },
-      // Unparseable stored value compares as a mismatch (port contract).
       catch: () => null,
     });
 

@@ -1,4 +1,7 @@
-import type { ILogger, LogMeta } from "../../application/interfaces/i-logger";
+import type {
+  ILogger,
+  LogMeta,
+} from "~/shared/application/interfaces/i-logger";
 
 export class ConsoleLogger implements ILogger {
   info(message: string, meta?: LogMeta): void {

@@ -1,14 +1,14 @@
-import type { IDateProvider } from "../../../../shared/application/interfaces/i-date-provider";
-import { make } from "../../../../shared/kernel/types/brand";
-import type { UserId } from "../../../../shared/kernel/types/ids";
 import type {
   GetSessionInput,
   ResolvedSessionOutput,
-} from "../dtos/auth-dtos";
-import { roleForEmail } from "../../domain/rules/role-rules";
-import type { IIdentityRepository } from "../ports/i-identity-repository";
-import type { ISessionRepository } from "../ports/i-session-repository";
-import type { ISessionTokenService } from "../ports/i-session-token-service";
+} from "~/features/auth/application/dtos/auth-dtos";
+import type { IIdentityRepository } from "~/features/auth/application/ports/i-identity-repository";
+import type { ISessionRepository } from "~/features/auth/application/ports/i-session-repository";
+import type { ISessionTokenService } from "~/features/auth/application/ports/i-session-token-service";
+import { roleForEmail } from "~/features/auth/domain/rules/role-rules";
+import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import { make } from "~/shared/kernel/types/brand";
+import type { UserId } from "~/shared/kernel/types/ids";
 
 export class GetSessionUseCase {
   constructor(

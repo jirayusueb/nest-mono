@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
+
+import {
+  mockPostRepository,
+  storedPost,
+} from "~/features/blog/application/testing/mocks";
+import { SlugVO } from "~/features/blog/domain/values/slug-vo";
 import {
   mockDateProvider,
   mockIdGenerator,
   mockUnitOfWork,
-} from "../../../../shared/application/testing/mocks";
-import type { UserId } from "../../../../shared/kernel/types/ids";
-import { make } from "../../../../shared/kernel/types/brand";
-import { SlugVO } from "../../domain/values/slug-vo";
+} from "~/shared/application/testing/mocks";
+import { make } from "~/shared/kernel/types/brand";
+import type { UserId } from "~/shared/kernel/types/ids";
+
 import { CreatePostUseCase } from "./create-post";
-import { mockPostRepository, storedPost } from "../testing/mocks";
 
 const NOW = new Date("2026-01-01T00:00:00.000Z");
 

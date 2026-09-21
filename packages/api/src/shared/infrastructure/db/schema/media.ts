@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+
 import { user } from "./auth";
 
 const createdAt = () =>

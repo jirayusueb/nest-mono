@@ -1,15 +1,15 @@
-import type { AppError } from "../../../../shared/kernel/errors/app-error";
-import type { SessionId, UserId } from "../../../../shared/kernel/types/ids";
-import { err, ok } from "../../../../shared/kernel/types/result";
-import { DomainError } from "../../../../shared/kernel/errors/domain-error";
-import type { Result } from "../../../../shared/kernel/types/result";
+import type { AppError } from "~/shared/kernel/errors/app-error";
+import { DomainError } from "~/shared/kernel/errors/domain-error";
+import type { SessionId, UserId } from "~/shared/kernel/types/ids";
+import { err, ok } from "~/shared/kernel/types/result";
+import type { Result } from "~/shared/kernel/types/result";
 
 const TOKEN_HASH_PATTERN = /^[0-9a-f]{64}$/u;
 
 export class SessionEntity {
   static readonly TTL_SECONDS = 604_800;
 
-  constructor(
+  private constructor(
     public readonly id: SessionId,
     public readonly userId: UserId,
     public readonly tokenHash: string,

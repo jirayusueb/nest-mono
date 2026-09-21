@@ -1,28 +1,29 @@
-export class PasswordRules {
-  static readonly MIN_LENGTH = 8;
-  static readonly MAX_LENGTH = 128;
-  static readonly REQUIRE_UPPERCASE = true;
-  static readonly REQUIRE_NUMBER = true;
+export const PASSWORD_MIN_LENGTH = 8;
 
-  static validate(password: string): { valid: boolean; errors: string[] } {
-    const errors: string[] = [];
+export const PASSWORD_MAX_LENGTH = 128;
 
-    if (password.length < this.MIN_LENGTH) {
-      errors.push(`Password must be at least ${this.MIN_LENGTH} characters`);
-    }
+export const PASSWORD_REQUIRE_UPPERCASE = true;
 
-    if (password.length > this.MAX_LENGTH) {
-      errors.push(`Password must be at most ${this.MAX_LENGTH} characters`);
-    }
+export const PASSWORD_REQUIRE_NUMBER = true;
 
-    if (this.REQUIRE_UPPERCASE && !/[A-Z]/u.test(password)) {
-      errors.push("Password must contain an uppercase letter");
-    }
+export function validatePassword(password: string) {
+  const errors: string[] = [];
 
-    if (this.REQUIRE_NUMBER && !/\d/u.test(password)) {
-      errors.push("Password must contain a number");
-    }
-
-    return { valid: errors.length === 0, errors };
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    errors.push(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
   }
+
+  if (password.length > PASSWORD_MAX_LENGTH) {
+    errors.push(`Password must be at most ${PASSWORD_MAX_LENGTH} characters`);
+  }
+
+  if (PASSWORD_REQUIRE_UPPERCASE && !/[A-Z]/u.test(password)) {
+    errors.push("Password must contain an uppercase letter");
+  }
+
+  if (PASSWORD_REQUIRE_NUMBER && !/\d/u.test(password)) {
+    errors.push("Password must contain a number");
+  }
+
+  return { valid: errors.length === 0, errors };
 }

@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
+
+import {
+  mockPostRepository,
+  storedPost,
+} from "~/features/blog/application/testing/mocks";
 import {
   mockDateProvider,
   mockUnitOfWork,
-} from "../../../../shared/application/testing/mocks";
-import type { PostId, UserId } from "../../../../shared/kernel/types/ids";
-import { make } from "../../../../shared/kernel/types/brand";
+} from "~/shared/application/testing/mocks";
+import { make } from "~/shared/kernel/types/brand";
+import type { PostId, UserId } from "~/shared/kernel/types/ids";
+
 import { UpdatePostUseCase } from "./update-post";
-import { mockPostRepository, storedPost } from "../testing/mocks";
 
 const NOW = new Date("2026-01-02T00:00:00.000Z");
 

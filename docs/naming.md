@@ -1,8 +1,7 @@
 # Naming
 
-Single source of truth for names across the monorepo. Architecture authority is
-`clean-architecture-guide.md`; this file translates it to this repo's stack
-(Nest, zod, drizzle, TanStack Start).
+One place for every naming rule in this monorepo. This file maps the
+architecture guide onto our actual stack (Nest, zod, drizzle, TanStack Start).
 
 ## Casing
 
@@ -23,31 +22,33 @@ drizzle migrations/snapshots, test files adjacent to their subject (`*.test.ts`)
 
 ## Filenames
 
-Stem = kebab of the file's primary export. Two suffix styles, by origin:
+Name the file after its primary export (kebab-case). Two suffix styles, by origin:
 
 - **Nest artifacts use dot-suffixes**: `*.module.ts`, `*.controller.ts`,
   `*.guard.ts`, `*.filter.ts`, `*.decorator.ts`, `*.pipe.ts` (`auth.module.ts`,
-  `blog.controller.ts`, `standard-schema-validation.pipe.ts`) — Nest CLI/idiom.
+  `post.controller.ts`, `standard-schema-validation.pipe.ts`) — Nest CLI/idiom.
 - **Everything else uses dash+role or bare stem**: infra class files carry the
-  full class name (`rust-fs-bucket-store.ts`, `drizzle-blog-repository.ts`,
+  full class name (`rust-fs-bucket-store.ts`, `drizzle-post-repository.ts`,
   `webcrypto-session-token-service.ts`); domain/kernel object files carry role
   suffixes (`xxx-entity.ts`, `xxx-vo.ts`, `xxx-rules.ts` — `post-entity.ts`,
   `email-vo.ts`, `media-rules.ts`); presentation mappers are
-  `<feature>-mappers.ts`.
+  `<noun>-mappers.ts` (`post-mappers.ts`, `auth-mappers.ts`).
 
 Multi-export non-class files are collections named by role:
 `<feature>-dtos.ts` (application DTOs), `<feature>-response.ts` +
 `mocks.ts`, `ids.ts`. Shared-scope collections are concept-named
 (`shared/application/dtos/pagination.ts`).
-Concept-named helper files are fine (`media-rules.ts`, `cookie.ts`, `role.ts`,
-`presign.ts`) when the file has no single primary class.
+Concept-named helper files are fine (`cookie.ts`, `session-user.ts`, `ids.ts`)
+when the file has no single primary class.
+`xxx-rules.ts` files export UPPER_SNAKE consts and verb-first pure functions
+(`validatePassword`, `roleForEmail`); no classes.
 DI token constants live beside the interface they inject
 (`DATE_PROVIDER` in `i-date-provider.ts`), not in a central tokens file.
 
 ## Classes by kind
 
-Every class carries its kind: domain objects take `Entity`/`VO`, technical
-classes take their role suffix.
+Every class advertises its kind in its name: domain objects take
+`Entity`/`VO`, technical classes take their role suffix.
 
 | Kind                                 | Pattern                                            | Example                                                          |
 | ------------------------------------ | -------------------------------------------------- | ---------------------------------------------------------------- |
@@ -56,17 +57,17 @@ classes take their role suffix.
 | Domain service                       | bare noun                                          | `PasswordPolicy` (guide example; none in repo yet)               |
 | Port (interface)                     | `I` + noun + role; `I` reserved for ports only     | `IPostRepository`, `IBucketStore`, `IDateProvider`               |
 | UseCase                              | verb + noun + `UseCase` suffix; `execute()` method | `CreatePostUseCase`, `GetSessionUseCase`                         |
-| Repository impl                      | Tech + noun + `Repository`                         | `DrizzleBlogRepository`, `MockPostRepository`                    |
+| Repository impl                      | Tech + noun + `Repository`                         | `DrizzlePostRepository`, `MockPostRepository`                    |
 | Infra service / store                | Tech + noun + role                                 | `RustFsBucketStore`, `DrizzleUnitOfWork`                         |
-| Infra mapper                         | noun + `Mapper` (singular, static methods)         | `BlogMapper`, `SessionMapper`                                    |
-| Presentation mapper                  | feature + `Mappers` (plural, static methods)       | `AuthMappers`, `BlogMappers`                                     |
-| Controller / Module / Guard / Filter | concern + role                                     | `BlogController`, `AuthModule`, `SessionGuard`, `AppErrorFilter` |
+| Infra mapper                         | noun + `Mapper` (singular, static methods)         | `PostMapper`, `SessionMapper`                                    |
+| Presentation mapper                  | dominant entity/feature + `Mappers` (plural)       | `AuthMappers`, `PostMappers`                                     |
+| Controller / Module / Guard / Filter | concern + role                                     | `PostController`, `AuthModule`, `SessionGuard`, `AppErrorFilter` |
 | Error                                | noun + `Error`                                     | `AppError`, `DomainError`                                        |
 | Test fixture                         | `stored` + noun (+ `*Overrides` interface)         | `storedPost`, `StoredPostOverrides`                              |
 
-Ports live in `application/ports/` (feature-scoped) and
-`shared/application/interfaces/` (shared) — same concept, two scopes, per the
-guide's structure.
+Ports live in `application/ports/` (feature-scoped) or
+`shared/application/interfaces/` (shared) — same concept, two scopes, matching
+the guide's structure.
 
 ## Types by layer
 
@@ -82,8 +83,14 @@ guide's structure.
 | DB row type (infrastructure)          | —     | noun + `Row`         | `UserRow`, `PostRow`, `IdentityJoinRow` |
 | Kernel vocabulary                     | —     | bare noun            | `SessionUser`, `Result`, `AppError`     |
 
-Mapper functions: `to` + target type name without layer words where clear
+Mappers are `to` + the target type, dropping layer words where clear
 (`toPostOutput`, `toUserResponse`, `toCreatePostInput`).
+
+## Tests
+
+`describe`/`it` subjects are lowercase, space-separated, mirroring the subject's
+filename stem (`describe("sign up")`, `describe("app error filter")`); use
+`it()`, not `test()`; phrase the title as behavior, not a method name.
 
 ## Web (apps/web)
 
@@ -93,16 +100,22 @@ Components are PascalCase named exports matching kebab filename stems; hooks
 
 ## Intentional deviations from the guide
 
-- **Drizzle schemas stay centralized in `src/db/schema/*`.** The guide puts
+- **Drizzle schemas stay centralized in `src/shared/infrastructure/db/schema/*`.** The guide puts
   them in `features/*/infrastructure/schema/`, but tables reference each other
   across features (`post.author_id → user.id`, `media.user_id → user.id`), so
   feature-owned schema files would require feature→feature imports, which
-  `anti-slop/no-illegal-layer-imports` forbids. `db/` is a root: feature
+  `no-illegal-layer-imports` forbids. `db/` is a root: feature
   `infrastructure/` may import it; `application/` and `presentation/` may not
   (runtime), and the lint rule enforces exactly that.
+  The persistence runtime lives in the same root: `db/database.ts` (client +
+  `DATABASE` token), `db/drizzle-unit-of-work.ts`, `db/tx-storage.ts`, and
+  `db/migrate.ts` — no separate `database/` directory.
 - **The per-feature composition root is the Nest `<feature>.module.ts`** at
   the feature root, which is the guide's `ioc.ts`. `bootstrap/` holds only
   `AppModule` and `create-app.ts`; feature-global providers (e.g.
   `SessionModule`) live in their feature. Cross-feature port adapters (e.g.
   `identity-repository.adapter.ts`) sit at the feature root beside the module
-  — composition-root artifacts, layer-unclassified by design.
+  — composition-root artifacts. The lint rule classifies feature-root files
+  as such and polices them: cross-feature imports are allowed only into the
+  other feature's `application/ports/**`, its `<feature>.module.ts`, or its
+  domain as type-only imports.

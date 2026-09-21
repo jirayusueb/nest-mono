@@ -1,6 +1,6 @@
-import type { SignOutInput } from "../dtos/auth-dtos";
-import type { ISessionRepository } from "../ports/i-session-repository";
-import type { ISessionTokenService } from "../ports/i-session-token-service";
+import type { SignOutInput } from "~/features/auth/application/dtos/auth-dtos";
+import type { ISessionRepository } from "~/features/auth/application/ports/i-session-repository";
+import type { ISessionTokenService } from "~/features/auth/application/ports/i-session-token-service";
 
 export class SignOutUseCase {
   constructor(
