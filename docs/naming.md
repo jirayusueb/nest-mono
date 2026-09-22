@@ -12,7 +12,7 @@ architecture guide onto our actual stack (Nest, zod, drizzle, TanStack Start).
 | Functions / variables               | camelCase, verb-first                        | `toPostOutput`, `roleForEmail`            |
 | React components                    | PascalCase named export = filename stem      | `admin-posts-page.tsx` → `AdminPostsPage` |
 | Hooks                               | `use` + noun                                 | `useSession`                              |
-| DI tokens                           | SCREAMING_SNAKE                              | `POST_REPOSITORY`, `DATE_PROVIDER`        |
+| DI value tokens                   | SCREAMING_SNAKE                              | `DATABASE`, `CONFIG`                      |
 | Env-derived consts / query-key maps | UPPER_SNAKE                                  | `API_ORIGIN`, `POST_QUERIES`              |
 | Zod schema consts                   | camelCase + `Schema`                         | `signInSchema`                            |
 | Drizzle tables                      | camelCase singular const; snake_case columns | `const post`, `created_at`                |
@@ -42,8 +42,10 @@ Concept-named helper files are fine (`cookie.ts`, `session-user.ts`, `ids.ts`)
 when the file has no single primary class.
 `xxx-rules.ts` files export UPPER_SNAKE consts and verb-first pure functions
 (`validatePassword`, `roleForEmail`); no classes.
-DI token constants live beside the interface they inject
-(`DATE_PROVIDER` in `i-date-provider.ts`), not in a central tokens file.
+Ports are abstract classes and double as their own DI tokens; value-token
+constants (non-class values only) live beside the value they provision
+(`DATABASE` in `db/database.ts`, `CONFIG` in `config/env.ts`), not in a
+central tokens file.
 
 ## Classes by kind
 
@@ -55,7 +57,7 @@ Every class advertises its kind in its name: domain objects take
 | Entity                               | noun + `Entity`; `create`/`restore` factories      | `PostEntity`, `SessionEntity`                                    |
 | Value object                         | noun + `VO`; `value` prop; `create`/`restore`      | `SlugVO`, `EmailVO`                                              |
 | Domain service                       | bare noun                                          | `PasswordPolicy` (guide example; none in repo yet)               |
-| Port (interface)                     | `I` + noun + role; `I` reserved for ports only     | `IPostRepository`, `IBucketStore`, `IDateProvider`               |
+| Port (abstract class)                | `I` + noun + role; `I` reserved for ports only; members are `abstract`; the class is its own DI token | `IPostRepository`, `IBucketStore`, `IDateProvider`               |
 | UseCase                              | verb + noun + `UseCase` suffix; `execute()` method | `CreatePostUseCase`, `GetSessionUseCase`                         |
 | Repository impl                      | Tech + noun + `Repository`                         | `DrizzlePostRepository`, `MockPostRepository`                    |
 | Infra service / store                | Tech + noun + role                                 | `RustFsBucketStore`, `DrizzleUnitOfWork`                         |
@@ -112,10 +114,12 @@ Components are PascalCase named exports matching kebab filename stems; hooks
   `db/migrate.ts` — no separate `database/` directory.
 - **The per-feature composition root is the Nest `<feature>.module.ts`** at
   the feature root, which is the guide's `ioc.ts`. `bootstrap/` holds only
-  `AppModule` and `create-app.ts`; feature-global providers (e.g.
-  `SessionModule`) live in their feature. Cross-feature port adapters (e.g.
-  `identity-repository.adapter.ts`) sit at the feature root beside the module
-  — composition-root artifacts. The lint rule classifies feature-root files
-  as such and polices them: cross-feature imports are allowed only into the
-  other feature's `application/ports/**`, its `<feature>.module.ts`, or its
-  domain as type-only imports.
+  `AppModule` and `create-app.ts`; feature-global modules (e.g. the
+  `@Global()` `AuthModule`) live in their feature. The feature root holds only
+  `*.module.ts` composition roots; cross-feature port adapters (e.g.
+  `identity-repository.adapter.ts`) live in the owning feature's
+  `infrastructure/adapters/`. The lint rule classifies only `*.module.ts`
+  feature-root files as composition roots and polices any other feature-root
+  file as infrastructure: cross-feature imports are allowed only into the
+  other feature's `application/ports/**`, its `*.module.ts`, or its domain as
+  type-only imports.

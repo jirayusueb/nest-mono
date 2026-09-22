@@ -5,7 +5,7 @@ import type {
   BucketObjectHead,
   IBucketStore,
 } from "~/features/media/application/ports/i-bucket-store";
-import { CONFIG, type Env } from "~/shared/infrastructure/config/env";
+import { ConfigService } from "~/shared/infrastructure/config/config-service";
 
 import { newS3Client, s3Config, type S3Config } from "./s3";
 
@@ -14,9 +14,9 @@ export class RustFsBucketStore implements IBucketStore {
   private readonly config: S3Config;
   private readonly client: AwsClient;
 
-  constructor(@Inject(CONFIG) env: Env) {
-    this.config = s3Config(env);
-    this.client = newS3Client(env);
+  constructor(@Inject(ConfigService) config: ConfigService) {
+    this.config = s3Config(config.env);
+    this.client = newS3Client(config.env);
   }
 
   async presignPut(

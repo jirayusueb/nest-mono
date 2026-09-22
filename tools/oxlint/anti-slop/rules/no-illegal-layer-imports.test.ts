@@ -119,6 +119,11 @@ tester.run("anti-slop/no-illegal-layer-imports", noIllegalLayerImportsRule, {
 			code: 'import { USER_REPOSITORY } from "../../../user/application/ports/i-user-repository";',
 			filename: FEATURE_INFRA,
 		},
+		// cross-feature port adapter at its sanctioned home
+		{
+			code: 'import { USER_REPOSITORY } from "../../../user/application/ports/i-user-repository";',
+			filename: "/src/features/auth/infrastructure/adapters/identity-repository.adapter.ts",
+		},
 		// unrestricted sources and non-relative specifiers
 		{
 			code: 'import { DrizzleUserRepository } from "../features/auth/infrastructure/repositories/drizzle-user-repository";',
@@ -266,6 +271,12 @@ tester.run("anti-slop/no-illegal-layer-imports", noIllegalLayerImportsRule, {
 			code: 'import { GetUser } from "../user/application/usecases/get-user";',
 			filename: "/src/features/auth/identity-repository.adapter.ts",
 			errors: [{ messageId: "crossFeature" }],
+		},
+		// stray feature-root files are policed as infrastructure, not roots
+		{
+			code: 'import { AuthController } from "./presentation/http/auth.controller";',
+			filename: "/src/features/auth/legacy-gateway.ts",
+			errors: [{ messageId: "infrastructureIsolation" }],
 		},
 		{
 			code: 'import { IdentityRepositoryAdapter } from "../auth/identity-repository.adapter";',

@@ -1,7 +1,5 @@
-export const DATE_PROVIDER = "DATE_PROVIDER";
-
-export interface IDateProvider {
-  now(): Date;
-  addSeconds(seconds: number, from?: Date): Date;
-  addMinutes(minutes: number, from?: Date): Date;
+export abstract class IDateProvider {
+  abstract now(): Date;
+  abstract addSeconds(seconds: number, from?: Date): Date;
+  abstract addMinutes(minutes: number, from?: Date): Date;
 }

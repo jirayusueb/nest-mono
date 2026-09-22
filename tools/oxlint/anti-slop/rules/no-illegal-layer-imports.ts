@@ -4,8 +4,9 @@ import type { ESTree } from "@oxlint/plugins";
 
 const FEATURE_PATH_RE =
 	/(?:^|\/)features\/([a-z0-9-]+)\/(domain|application|infrastructure|presentation)(?:\/|$)/u;
-// Files directly under features/<f>/ (modules, cross-feature adapters):
-// composition roots of the owning feature.
+// Only Nest modules directly under features/<f>/ are composition roots;
+// any other feature-root file is policed as infrastructure (where
+// cross-feature adapters belong).
 const FEATURE_ROOT_PATH_RE = /(?:^|\/)features\/([a-z0-9-]+)\/[^/]+$/u;
 const SHARED_PATH_RE =
 	/(?:^|\/)shared\/(kernel|application|infrastructure|presentation)(?:\/|$)/u;
@@ -25,9 +26,8 @@ type Classified =
 			feature: string;
 			layer: FeatureLayer;
 			isPorts: boolean;
-			isModule: boolean;
 	  }
-	| { kind: "featureRoot"; feature: string; isModule: boolean }
+	| { kind: "featureRoot"; feature: string }
 	| { kind: "shared"; layer: SharedLayer }
 	| { kind: "bootstrap" }
 	| { kind: "db" }
@@ -48,16 +48,19 @@ function classifyPath(path: string): Classified {
 			feature: name,
 			layer: feature[2] as FeatureLayer,
 			isPorts: path.includes("/application/ports/"),
-			isModule: base === `${name}.module` || base === `${name}.module.ts`,
 		};
 	}
 	const featureRoot = FEATURE_ROOT_PATH_RE.exec(path);
 	if (featureRoot) {
 		const name = featureRoot[1]!;
+		if (base.endsWith(".module") || base.endsWith(".module.ts")) {
+			return { kind: "featureRoot", feature: name };
+		}
 		return {
-			kind: "featureRoot",
+			kind: "feature",
 			feature: name,
-			isModule: base === `${name}.module` || base === `${name}.module.ts`,
+			layer: "infrastructure",
+			isPorts: false,
 		};
 	}
 	const shared = SHARED_PATH_RE.exec(path);
@@ -166,13 +169,13 @@ function evaluate(
 			(target.kind === "featureRoot" && target.feature !== source.feature))
 	) {
 		// Cross-feature allowlist: the other feature's application ports
-		// (any import kind), its <feature>.module.ts (composition), or
-		// type-only domain imports. Everything else routes through shared.
+		// (any import kind), its *.module.ts (composition), or type-only
+		// domain imports. Everything else routes through shared.
 		const allowed =
 			(target.kind === "feature" &&
 				(target.isPorts ||
 					(target.layer === "domain" && !runtime.hasRuntime))) ||
-			(target.kind === "featureRoot" && target.isModule);
+			target.kind === "featureRoot";
 		if (!allowed) {
 			return {
 				messageId: "crossFeature",

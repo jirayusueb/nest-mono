@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 
-import { LOGGER, type ILogger } from "~/shared/application/interfaces/i-logger";
+import { ILogger } from "~/shared/application/interfaces/i-logger";
 import { AppError, type ErrorDetails } from "~/shared/kernel/errors/app-error";
 
 const CODE_BY_STATUS: Record<number, string> = {
@@ -32,7 +32,7 @@ const INTERNAL_PROBLEM = { status: 500, title: "Internal Server Error" };
 @Catch()
 @Injectable()
 export class AppErrorFilter implements ExceptionFilter<unknown> {
-  constructor(@Inject(LOGGER) private readonly logger: ILogger) {}
+  constructor(@Inject(ILogger) private readonly logger: ILogger) {}
 
   async catch(error: unknown, host: ArgumentsHost): Promise<void> {
     const appError = this.toAppError(error);

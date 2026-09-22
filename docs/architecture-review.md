@@ -151,6 +151,10 @@ content it belongs in `features/auth/infrastructure/repositories/` (the
 cross-feature allowlist already permits importing user's ports from any layer,
 `no-illegal-layer-imports.ts:168-175`). Placement, not substance.
 
+**Resolved:** moved to `auth/infrastructure/adapters/identity-repository.adapter.ts`;
+only `*.module.ts` files remain feature-root composition roots — other
+feature-root files are policed as infrastructure.
+
 **N7. The lint gate is red.**
 19 errors across 11 files (see §1 baseline), including 5 `organize-imports`
 and 4 missing `SAFETY:` comments in `create-app.ts:27-28`,
@@ -180,7 +184,7 @@ Actual code vs. those rules (exhaustive greps over `packages/api/src`):
 
 | Gap in the rule | Exploited? | Notes |
 | --- | --- | --- |
-| Feature-root files unrestricted (`:187`) | **Yes — by design** | Modules + `IdentityRepositoryAdapter` (N6). Only load-bearing gap today. |
+| Feature-root files unrestricted (`:187`) | No (resolved) | Only `*.module.ts` composition roots are featureRoot now; other feature-root files are policed as infrastructure (N6). |
 | `db/` files unrestricted (`:66`) | No | `db/*` imports only drizzle + each other (`migrate.ts:3`, `drizzle-unit-of-work.ts:5-6`). |
 | Unclassified paths unrestricted (`:34`) | No | Only `src/index.ts`. |
 | Presentation → infra type-only escape hatch | No | No occurrence found. |
@@ -233,7 +237,7 @@ Dependency Rule holds with no manual exceptions filed anywhere.
 3. **`UserEntity.create` + test; route the adapter through it** (D3).
 4. **Derive or drop the duplicated password regexes** (N4) — one-line-ish.
 5. **Shared/generate web contract types** (N5).
-6. **Move `identity-repository.adapter.ts` into `auth/infrastructure/` and
+6. ✅ **Move `identity-repository.adapter.ts` into `auth/infrastructure/` and
    tighten `FEATURE_ROOT_PATH_RE` to `*.module.ts`** (N6) — makes the only
    load-bearing enforcement gap disappear.
 7. **Fix the 19 lint errors; keep the gate green** (N7).

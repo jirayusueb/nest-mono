@@ -1,17 +1,15 @@
-export const BUCKET_STORE = "BUCKET_STORE";
-
 export interface BucketObjectHead {
   bytes: number;
   contentType: string;
 }
 
-export interface IBucketStore {
-  presignPut(
+export abstract class IBucketStore {
+  abstract presignPut(
     key: string,
     contentType: string,
     expiresSeconds: number,
   ): Promise<string>;
-  head(key: string): Promise<BucketObjectHead | null>;
-  delete(key: string): Promise<void>;
-  publicUrl(key: string): string;
+  abstract head(key: string): Promise<BucketObjectHead | null>;
+  abstract delete(key: string): Promise<void>;
+  abstract publicUrl(key: string): string;
 }

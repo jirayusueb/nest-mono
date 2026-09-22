@@ -1,8 +1,6 @@
 import type { UserId } from "~/shared/kernel/types/ids";
 import type { EmailVO } from "~/shared/kernel/values/email-vo";
 
-export const IDENTITY_REPOSITORY = "IDENTITY_REPOSITORY";
-
 export interface AuthIdentity {
   id: string;
   name: string;
@@ -21,9 +19,9 @@ export interface NewIdentity {
   now: Date;
 }
 
-export interface IIdentityRepository {
-  findByEmail(email: EmailVO): Promise<AuthIdentity | null>;
-  findById(id: UserId): Promise<AuthIdentity | null>;
-  emailExists(email: EmailVO): Promise<boolean>;
-  createWithCredential(input: NewIdentity): Promise<AuthIdentity>;
+export abstract class IIdentityRepository {
+  abstract findByEmail(email: EmailVO): Promise<AuthIdentity | null>;
+  abstract findById(id: UserId): Promise<AuthIdentity | null>;
+  abstract emailExists(email: EmailVO): Promise<boolean>;
+  abstract createWithCredential(input: NewIdentity): Promise<AuthIdentity>;
 }

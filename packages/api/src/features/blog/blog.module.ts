@@ -1,22 +1,10 @@
 import { Module } from "@nestjs/common";
 
-import {
-  DATE_PROVIDER,
-  type IDateProvider,
-} from "~/shared/application/interfaces/i-date-provider";
-import {
-  ID_GENERATOR,
-  type IIdGenerator,
-} from "~/shared/application/interfaces/i-id-generator";
-import {
-  UNIT_OF_WORK,
-  type IUnitOfWork,
-} from "~/shared/application/interfaces/i-unit-of-work";
+import { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
 
-import {
-  POST_REPOSITORY,
-  type IPostRepository,
-} from "./application/ports/i-post-repository";
+import { IPostRepository } from "./application/ports/i-post-repository";
 import { CreatePostUseCase } from "./application/usecases/create-post";
 import { DeletePostUseCase } from "./application/usecases/delete-post";
 import { GetPostBySlugUseCase } from "./application/usecases/get-post-by-slug";
@@ -29,21 +17,21 @@ import { PostController } from "./presentation/http/post.controller";
 @Module({
   controllers: [PostController],
   providers: [
-    { provide: POST_REPOSITORY, useClass: DrizzlePostRepository },
+    { provide: IPostRepository, useClass: DrizzlePostRepository },
     {
       provide: ListPostsUseCase,
       useFactory: (repo: IPostRepository) => new ListPostsUseCase(repo),
-      inject: [POST_REPOSITORY],
+      inject: [IPostRepository],
     },
     {
       provide: ListCategoriesUseCase,
       useFactory: (repo: IPostRepository) => new ListCategoriesUseCase(repo),
-      inject: [POST_REPOSITORY],
+      inject: [IPostRepository],
     },
     {
       provide: GetPostBySlugUseCase,
       useFactory: (repo: IPostRepository) => new GetPostBySlugUseCase(repo),
-      inject: [POST_REPOSITORY],
+      inject: [IPostRepository],
     },
     {
       provide: CreatePostUseCase,
@@ -53,7 +41,7 @@ import { PostController } from "./presentation/http/post.controller";
         clock: IDateProvider,
         uow: IUnitOfWork,
       ) => new CreatePostUseCase(repo, ids, clock, uow),
-      inject: [POST_REPOSITORY, ID_GENERATOR, DATE_PROVIDER, UNIT_OF_WORK],
+      inject: [IPostRepository, IIdGenerator, IDateProvider, IUnitOfWork],
     },
     {
       provide: UpdatePostUseCase,
@@ -62,7 +50,7 @@ import { PostController } from "./presentation/http/post.controller";
         clock: IDateProvider,
         uow: IUnitOfWork,
       ) => new UpdatePostUseCase(repo, clock, uow),
-      inject: [POST_REPOSITORY, DATE_PROVIDER, UNIT_OF_WORK],
+      inject: [IPostRepository, IDateProvider, IUnitOfWork],
     },
     {
       provide: DeletePostUseCase,
@@ -71,7 +59,7 @@ import { PostController } from "./presentation/http/post.controller";
         clock: IDateProvider,
         uow: IUnitOfWork,
       ) => new DeletePostUseCase(repo, clock, uow),
-      inject: [POST_REPOSITORY, DATE_PROVIDER, UNIT_OF_WORK],
+      inject: [IPostRepository, IDateProvider, IUnitOfWork],
     },
   ],
 })

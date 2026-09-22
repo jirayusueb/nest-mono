@@ -1,70 +1,46 @@
-import { Module } from "@nestjs/common";
+import { Global, Module } from "@nestjs/common";
 
-import {
-  USER_REPOSITORY,
-  type IUserRepository,
-} from "~/features/user/application/ports/i-user-repository";
+import { IUserRepository } from "~/features/user/application/ports/i-user-repository";
 import { UserModule } from "~/features/user/user.module";
-import {
-  DATE_PROVIDER,
-  type IDateProvider,
-} from "~/shared/application/interfaces/i-date-provider";
-import {
-  ID_GENERATOR,
-  type IIdGenerator,
-} from "~/shared/application/interfaces/i-id-generator";
-import { SESSION_RESOLVER } from "~/shared/application/interfaces/i-session-resolver";
-import {
-  UNIT_OF_WORK,
-  type IUnitOfWork,
-} from "~/shared/application/interfaces/i-unit-of-work";
-import { ADMIN_EMAILS } from "~/shared/infrastructure/config/admin-emails";
-import { CONFIG, type Env } from "~/shared/infrastructure/config/env";
+import { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import { ISessionResolver } from "~/shared/application/interfaces/i-session-resolver";
+import { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
+import { ConfigService } from "~/shared/infrastructure/config/config-service";
 import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
 import { SESSION_COOKIE_SECURE } from "~/shared/presentation/http/cookie";
 
-import {
-  IDENTITY_REPOSITORY,
-  type IIdentityRepository,
-} from "./application/ports/i-identity-repository";
-import {
-  PASSWORD_HASHER,
-  type IPasswordHasher,
-} from "./application/ports/i-password-hasher";
-import {
-  SESSION_REPOSITORY,
-  type ISessionRepository,
-} from "./application/ports/i-session-repository";
-import {
-  SESSION_TOKEN_SERVICE,
-  type ISessionTokenService,
-} from "./application/ports/i-session-token-service";
+import { IIdentityRepository } from "./application/ports/i-identity-repository";
+import { IPasswordHasher } from "./application/ports/i-password-hasher";
+import { ISessionRepository } from "./application/ports/i-session-repository";
+import { ISessionTokenService } from "./application/ports/i-session-token-service";
 import { SessionIssuer } from "./application/services/session-issuer";
 import { SessionResolver } from "./application/services/session-resolver";
 import { GetSessionUseCase } from "./application/usecases/get-session";
 import { SignInUseCase } from "./application/usecases/sign-in";
 import { SignOutUseCase } from "./application/usecases/sign-out";
 import { SignUpUseCase } from "./application/usecases/sign-up";
-import { IdentityRepositoryAdapter } from "./identity-repository.adapter";
+import { IdentityRepositoryAdapter } from "./infrastructure/adapters/identity-repository.adapter";
 import { DrizzleSessionRepository } from "./infrastructure/repositories/drizzle-session-repository";
 import { ScryptPasswordHasher } from "./infrastructure/services/scrypt-password-hasher";
 import { WebCryptoSessionTokenService } from "./infrastructure/services/webcrypto-session-token-service";
 import { AuthController } from "./presentation/http/auth.controller";
 
+@Global()
 @Module({
   imports: [UserModule],
   controllers: [AuthController],
-  exports: [SESSION_RESOLVER],
+  exports: [ISessionResolver],
   providers: [
     {
-      provide: IDENTITY_REPOSITORY,
+      provide: IIdentityRepository,
       useFactory: (users: IUserRepository, db: Database) =>
         new IdentityRepositoryAdapter(users, db),
-      inject: [USER_REPOSITORY, DATABASE],
+      inject: [IUserRepository, DATABASE],
     },
-    { provide: SESSION_REPOSITORY, useClass: DrizzleSessionRepository },
-    { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
-    { provide: SESSION_TOKEN_SERVICE, useClass: WebCryptoSessionTokenService },
+    { provide: ISessionRepository, useClass: DrizzleSessionRepository },
+    { provide: IPasswordHasher, useClass: ScryptPasswordHasher },
+    { provide: ISessionTokenService, useClass: WebCryptoSessionTokenService },
     {
       provide: SessionIssuer,
       useFactory: (
@@ -72,14 +48,14 @@ import { AuthController } from "./presentation/http/auth.controller";
         tokens: ISessionTokenService,
         ids: IIdGenerator,
         dates: IDateProvider,
-        adminEmails: ReadonlySet<string>,
-      ) => new SessionIssuer(sessions, tokens, ids, dates, adminEmails),
+        config: ConfigService,
+      ) => new SessionIssuer(sessions, tokens, ids, dates, config.adminEmails),
       inject: [
-        SESSION_REPOSITORY,
-        SESSION_TOKEN_SERVICE,
-        ID_GENERATOR,
-        DATE_PROVIDER,
-        ADMIN_EMAILS,
+        ISessionRepository,
+        ISessionTokenService,
+        IIdGenerator,
+        IDateProvider,
+        ConfigService,
       ],
     },
     {
@@ -93,12 +69,12 @@ import { AuthController } from "./presentation/http/auth.controller";
         uow: IUnitOfWork,
       ) => new SignUpUseCase(identities, hasher, issuer, ids, dates, uow),
       inject: [
-        IDENTITY_REPOSITORY,
-        PASSWORD_HASHER,
+        IIdentityRepository,
+        IPasswordHasher,
         SessionIssuer,
-        ID_GENERATOR,
-        DATE_PROVIDER,
-        UNIT_OF_WORK,
+        IIdGenerator,
+        IDateProvider,
+        IUnitOfWork,
       ],
     },
     {
@@ -110,10 +86,10 @@ import { AuthController } from "./presentation/http/auth.controller";
         dates: IDateProvider,
       ) => new SignInUseCase(identities, hasher, issuer, dates),
       inject: [
-        IDENTITY_REPOSITORY,
-        PASSWORD_HASHER,
+        IIdentityRepository,
+        IPasswordHasher,
         SessionIssuer,
-        DATE_PROVIDER,
+        IDateProvider,
       ],
     },
     {
@@ -122,7 +98,7 @@ import { AuthController } from "./presentation/http/auth.controller";
         sessions: ISessionRepository,
         tokens: ISessionTokenService,
       ) => new SignOutUseCase(sessions, tokens),
-      inject: [SESSION_REPOSITORY, SESSION_TOKEN_SERVICE],
+      inject: [ISessionRepository, ISessionTokenService],
     },
     {
       provide: GetSessionUseCase,
@@ -131,27 +107,27 @@ import { AuthController } from "./presentation/http/auth.controller";
         tokens: ISessionTokenService,
         identities: IIdentityRepository,
         dates: IDateProvider,
-        adminEmails: ReadonlySet<string>,
+        config: ConfigService,
       ) =>
-        new GetSessionUseCase(sessions, tokens, identities, dates, adminEmails),
+        new GetSessionUseCase(sessions, tokens, identities, dates, config.adminEmails),
       inject: [
-        SESSION_REPOSITORY,
-        SESSION_TOKEN_SERVICE,
-        IDENTITY_REPOSITORY,
-        DATE_PROVIDER,
-        ADMIN_EMAILS,
+        ISessionRepository,
+        ISessionTokenService,
+        IIdentityRepository,
+        IDateProvider,
+        ConfigService,
       ],
     },
     {
-      provide: SESSION_RESOLVER,
+      provide: ISessionResolver,
       useFactory: (getSession: GetSessionUseCase) =>
         new SessionResolver(getSession),
       inject: [GetSessionUseCase],
     },
     {
       provide: SESSION_COOKIE_SECURE,
-      useFactory: (env: Env) => env.NODE_ENV === "production",
-      inject: [CONFIG],
+      useFactory: (config: ConfigService) => config.isProduction,
+      inject: [ConfigService],
     },
   ],
 })

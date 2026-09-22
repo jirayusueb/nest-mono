@@ -16,7 +16,7 @@ import { DeleteMediaUseCase } from "~/features/media/application/usecases/delete
 import { ListMediaUseCase } from "~/features/media/application/usecases/list-media";
 import type { SessionUser } from "~/shared/kernel/types/session-user";
 import { CurrentUser } from "~/shared/presentation/http/current-user.decorator";
-import { SessionGuard } from "~/shared/presentation/http/session.guard";
+import { SessionGuard } from "~/shared/presentation/http/guards/session.guard";
 
 import type {
   ConfirmMediaResponse,

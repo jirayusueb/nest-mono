@@ -1,11 +1,11 @@
 import { Global, Module } from "@nestjs/common";
 
-import { DATE_PROVIDER } from "~/shared/application/interfaces/i-date-provider";
-import { ID_GENERATOR } from "~/shared/application/interfaces/i-id-generator";
-import { LOGGER } from "~/shared/application/interfaces/i-logger";
-import { UNIT_OF_WORK } from "~/shared/application/interfaces/i-unit-of-work";
+import { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
+import { ILogger } from "~/shared/application/interfaces/i-logger";
+import { IUnitOfWork } from "~/shared/application/interfaces/i-unit-of-work";
 
-import { CONFIG, type Env } from "./config/env";
+import { ConfigService } from "./config/config-service";
 import { RealDateProvider } from "./date/real-date-provider";
 import { createDatabase, DATABASE } from "./db/database";
 import { DrizzleUnitOfWork } from "./db/drizzle-unit-of-work";
@@ -17,14 +17,15 @@ import { ConsoleLogger } from "./logging/console-logger";
   providers: [
     {
       provide: DATABASE,
-      useFactory: (env: Env) => createDatabase(env.DATABASE_URL),
-      inject: [CONFIG],
+      useFactory: (config: ConfigService) =>
+        createDatabase(config.env.DATABASE_URL),
+      inject: [ConfigService],
     },
-    { provide: DATE_PROVIDER, useClass: RealDateProvider },
-    { provide: ID_GENERATOR, useClass: UuidV7Generator },
-    { provide: LOGGER, useClass: ConsoleLogger },
-    { provide: UNIT_OF_WORK, useClass: DrizzleUnitOfWork },
+    { provide: IDateProvider, useClass: RealDateProvider },
+    { provide: IIdGenerator, useClass: UuidV7Generator },
+    { provide: ILogger, useClass: ConsoleLogger },
+    { provide: IUnitOfWork, useClass: DrizzleUnitOfWork },
   ],
-  exports: [DATABASE, DATE_PROVIDER, ID_GENERATOR, LOGGER, UNIT_OF_WORK],
+  exports: [DATABASE, IDateProvider, IIdGenerator, ILogger, IUnitOfWork],
 })
 export class DatabaseModule {}

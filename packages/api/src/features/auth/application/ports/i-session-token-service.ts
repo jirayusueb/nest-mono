@@ -1,6 +1,4 @@
-export const SESSION_TOKEN_SERVICE = "SESSION_TOKEN_SERVICE";
-
-export interface ISessionTokenService {
-  issue(): Promise<{ token: string; tokenHash: string }>;
-  hash(raw: string): Promise<string>;
+export abstract class ISessionTokenService {
+  abstract issue(): Promise<{ token: string; tokenHash: string }>;
+  abstract hash(raw: string): Promise<string>;
 }

@@ -15,10 +15,8 @@ import {
   type PaginatedRequest,
   type PaginatedResponse,
 } from "~/shared/application/dtos/pagination";
-import type { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
-import { DATE_PROVIDER } from "~/shared/application/interfaces/i-date-provider";
-import type { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
-import { ID_GENERATOR } from "~/shared/application/interfaces/i-id-generator";
+import { IDateProvider } from "~/shared/application/interfaces/i-date-provider";
+import { IIdGenerator } from "~/shared/application/interfaces/i-id-generator";
 import {
   DATABASE,
   type Database,
@@ -44,8 +42,8 @@ const SORTABLE: Record<string, PgColumn> = {
 export class DrizzlePostRepository implements IPostRepository {
   constructor(
     @Inject(DATABASE) private readonly db: Database,
-    @Inject(ID_GENERATOR) private readonly ids: IIdGenerator,
-    @Inject(DATE_PROVIDER) private readonly clock: IDateProvider,
+    @Inject(IIdGenerator) private readonly ids: IIdGenerator,
+    @Inject(IDateProvider) private readonly clock: IDateProvider,
   ) {}
 
   private get dbOrTx(): Database {

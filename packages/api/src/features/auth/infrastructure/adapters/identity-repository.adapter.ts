@@ -1,10 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 
-import {
-  USER_REPOSITORY,
-  type IUserRepository,
-} from "~/features/user/application/ports/i-user-repository";
+import { IUserRepository } from "~/features/user/application/ports/i-user-repository";
 import type { UserEntity } from "~/features/user/domain/entities/user-entity";
 import { DATABASE, type Database } from "~/shared/infrastructure/db/database";
 import { account } from "~/shared/infrastructure/db/schema/auth";
@@ -13,15 +10,15 @@ import type { UserId } from "~/shared/kernel/types/ids";
 import { EmailVO } from "~/shared/kernel/values/email-vo";
 
 import type {
-  AuthIdentity,
-  IIdentityRepository,
-  NewIdentity,
-} from "./application/ports/i-identity-repository";
+	AuthIdentity,
+	IIdentityRepository,
+	NewIdentity,
+} from "~/features/auth/application/ports/i-identity-repository";
 
 @Injectable()
 export class IdentityRepositoryAdapter implements IIdentityRepository {
   constructor(
-    @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+    @Inject(IUserRepository) private readonly users: IUserRepository,
     @Inject(DATABASE) private readonly db: Database,
   ) {}
 

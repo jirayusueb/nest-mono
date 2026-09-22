@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ConfigService } from "~/shared/infrastructure/config/config-service";
 import type { Env } from "~/shared/infrastructure/config/env";
 
 import { RustFsBucketStore } from "./rust-fs-bucket-store";
@@ -17,13 +18,15 @@ const env = {
   ADMIN_EMAILS: "",
 } satisfies Env;
 
+const config = new ConfigService(env);
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("rust fs bucket store", () => {
   it("presignPut returns a signed PUT URL for the object key", async () => {
-    const store = new RustFsBucketStore(env);
+    const store = new RustFsBucketStore(config);
 
     const url = new URL(
       await store.presignPut("dir/my file.png", "image/png", 300),
@@ -41,7 +44,7 @@ describe("rust fs bucket store", () => {
   });
 
   it("publicUrl joins endpoint, bucket, and key", () => {
-    const store = new RustFsBucketStore(env);
+    const store = new RustFsBucketStore(config);
     expect(store.publicUrl("a/b.png")).toBe(
       "http://localhost:9000/media/a/b.png",
     );
@@ -53,12 +56,12 @@ describe("rust fs bucket store", () => {
       vi.fn(async () => new Response(null, { status: 404 })),
     );
 
-    const store = new RustFsBucketStore(env);
+    const store = new RustFsBucketStore(config);
     expect(await store.head("missing.png")).toBeNull();
   });
 
   it("delete ignores a 404 and throws on other failures", async () => {
-    const store = new RustFsBucketStore(env);
+    const store = new RustFsBucketStore(config);
 
     vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
     await expect(store.delete("missing.png")).resolves.toBeUndefined();

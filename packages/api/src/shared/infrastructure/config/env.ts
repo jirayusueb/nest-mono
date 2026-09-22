@@ -15,8 +15,6 @@ const envSchema = z.object({
   ADMIN_EMAILS: z.string().default(""),
 });
 
-export const CONFIG = "CONFIG";
-
 export type Env = z.infer<typeof envSchema>;
 
 export function loadEnv(): Env {

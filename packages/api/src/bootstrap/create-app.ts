@@ -9,8 +9,8 @@ import {
 } from "@nestjs/platform-fastify";
 
 import type { Env } from "~/shared/infrastructure/config/env";
-import { AppErrorFilter } from "~/shared/presentation/http/app-error.filter";
-import { StandardSchemaValidationPipe } from "~/shared/presentation/http/standard-schema-validation.pipe";
+import { AppErrorFilter } from "~/shared/presentation/http/filters/app-error.filter";
+import { StandardSchemaValidationPipe } from "~/shared/presentation/http/pipes/standard-schema-validation.pipe";
 
 import { AppModule } from "./app.module";
 

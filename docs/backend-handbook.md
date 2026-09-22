@@ -414,16 +414,16 @@ stays framework-agnostic.
 ### Feature composition root: `{feature}.module.ts`
 
 Each feature exports a `@Module()` that (1) imports the modules its controllers
-need, (2) **binds ports to implementations** via tokens + `useClass`, and
-(3) registers use cases, services, and controllers:
+need, (2) **binds ports to implementations** via the port class + `useClass`,
+and (3) registers use cases, services, and controllers:
 
 ```typescript
 @Module({
   imports: [UserModule],
   providers: [
-    { provide: USER_REPOSITORY, useClass: DrizzleUserRepository },
-    { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
-    { provide: SESSION_REPOSITORY, useClass: DrizzleSessionRepository },
+    { provide: IUserRepository, useClass: DrizzleUserRepository },
+    { provide: IPasswordHasher, useClass: ScryptPasswordHasher },
+    { provide: ISessionRepository, useClass: DrizzleSessionRepository },
     SignUpUseCase,
     SignInUseCase,
     SessionIssuer,
@@ -433,9 +433,13 @@ need, (2) **binds ports to implementations** via tokens + `useClass`, and
 export class AuthModule {}
 ```
 
-Ports are *interfaces* upstream (`IUserRepository`); their binding lives in a
-token exported next to the interface (`USER_REPOSITORY`). Infrastructure
-classes take collaborators via `@Inject(TOKEN)`.
+Ports are *abstract classes* upstream (`IUserRepository`) — the class is both
+the type and its DI token, so there is no separate token constant.
+Infrastructure classes take collaborators via `@Inject(IPortName)` (explicit
+`@Inject` everywhere because the build keeps `emitDecoratorMetadata` off).
+Non-class values keep SCREAMING_SNAKE string tokens: `DATABASE` (drizzle
+client), `CONFIG` (validated `Env`), `ADMIN_EMAILS` (`ReadonlySet<string>`),
+`SESSION_COOKIE_SECURE` (`boolean`).
 
 ### Application composition root: `bootstrap/`
 
@@ -556,7 +560,7 @@ Cookie-session auth (not bearer-JWT-in-a-header by default):
 | `ScryptPasswordHasher` | `auth/infrastructure/` | `IPasswordHasher` |
 | `SessionIssuer` | `auth/application/` | issues + persists + derives role |
 | `SessionGuard` / `AdminGuard` | `shared/presentation/` | protect routes |
-| `CookieService` | `shared/presentation/` | sets HttpOnly cookie |
+| `cookie.ts` helpers | `shared/presentation/` | session cookie name + secure flag |
 
 ```mermaid
 sequenceDiagram
@@ -596,7 +600,7 @@ Unit tests live **next to the code** as `*.test.ts`, run with vitest.
 | Domain | entities, rules, VOs | pure unit tests |
 | Application | use cases, services | inject **in-memory fakes** of the ports |
 | Infrastructure | hashers, mappers, stores | real implementation, replaced env (e.g. local bucket) |
-| Shared presentation | filter, pipes, cookie service | unit tests |
+| Shared presentation | filter, pipes | unit tests |
 
 Fakes live in the same layer they replace (e.g. `application/testing/mocks.ts`).
 Prefer hand-written in-memory fakes over a mocking framework so use-case tests

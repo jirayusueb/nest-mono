@@ -17,9 +17,7 @@ import { SignUpUseCase } from "~/features/auth/application/usecases/sign-up";
 import {
   SESSION_COOKIE,
   SESSION_COOKIE_SECURE,
-  sessionCookieOptions,
 } from "~/shared/presentation/http/cookie";
-import { CookieService } from "~/shared/presentation/http/cookie-service";
 
 import type {
   AuthSessionResponse,
@@ -45,7 +43,6 @@ export class AuthController {
     @Inject(SignOutUseCase) private readonly signOut: SignOutUseCase,
     @Inject(GetSessionUseCase) private readonly getSession: GetSessionUseCase,
     @Inject(SESSION_COOKIE_SECURE) private readonly cookieSecure: boolean,
-    @Inject(CookieService) private readonly cookies: CookieService,
   ) {}
 
   @Post("sign-up/email")
@@ -64,12 +61,13 @@ export class AuthController {
     }
 
     const { user, token, expiresAt } = result.value;
-    this.cookies.set(
-      reply,
-      SESSION_COOKIE,
-      token,
-      sessionCookieOptions(expiresAt, this.cookieSecure),
-    );
+    reply.cookie(SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: this.cookieSecure,
+      expires: expiresAt,
+    });
 
     return { user: AuthMappers.toSessionUserResponse(user), token };
   }
@@ -91,12 +89,13 @@ export class AuthController {
 
     const { user, token, expiresAt } = result.value;
 
-    this.cookies.set(
-      reply,
-      SESSION_COOKIE,
-      token,
-      sessionCookieOptions(expiresAt, this.cookieSecure),
-    );
+    reply.cookie(SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: this.cookieSecure,
+      expires: expiresAt,
+    });
 
     return { user: AuthMappers.toSessionUserResponse(user), token };
   }
@@ -106,17 +105,13 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SignOutResponse> {
-    const token = this.cookies.read(req, SESSION_COOKIE);
+    const token = req.cookies[SESSION_COOKIE] ?? null;
 
     if (token) {
       await this.signOut.execute({ token });
     }
 
-    this.cookies.clear(
-      reply,
-      SESSION_COOKIE,
-      sessionCookieOptions(new Date(0), this.cookieSecure),
-    );
+    reply.clearCookie(SESSION_COOKIE);
 
     return { success: true };
   }
@@ -125,7 +120,7 @@ export class AuthController {
   async getSessionRoute(
     @Req() req: FastifyRequest,
   ): Promise<GetSessionResponse | null> {
-    const token = this.cookies.read(req, SESSION_COOKIE);
+    const token = req.cookies[SESSION_COOKIE] ?? null;
 
     if (!token) {
       return null;

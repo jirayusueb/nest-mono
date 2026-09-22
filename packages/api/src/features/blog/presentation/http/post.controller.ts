@@ -20,9 +20,9 @@ import { ListPostsUseCase } from "~/features/blog/application/usecases/list-post
 import { UpdatePostUseCase } from "~/features/blog/application/usecases/update-post";
 import { type PaginatedResponse } from "~/shared/application/dtos/pagination";
 import type { SessionUser } from "~/shared/kernel/types/session-user";
-import { AdminGuard } from "~/shared/presentation/http/admin.guard";
 import { CurrentUser } from "~/shared/presentation/http/current-user.decorator";
-import { SessionGuard } from "~/shared/presentation/http/session.guard";
+import { AdminGuard } from "~/shared/presentation/http/guards/admin.guard";
+import { SessionGuard } from "~/shared/presentation/http/guards/session.guard";
 
 import type { CategoryListResponse, PostResponse } from "./dtos/blog-response";
 import {
